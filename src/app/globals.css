@@ -12,6 +12,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -20,7 +29,279 @@
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Animation classes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Focus styles */
+.focus-visible {
+  outline: 2px solid var(--color-hospital-accent);
+  outline-offset: 2px;
+}
+
+/* Button hover effects */
+.btn-hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--color-hospital-primary) 0%, var(--color-hospital-secondary) 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, var(--color-hospital-accent) 0%, var(--color-hospital-medium) 100%);
+}
+
+.gradient-light {
+  background: linear-gradient(135deg, var(--color-hospital-light) 0%, var(--color-hospital-medium) 100%);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Text gradients */
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--color-hospital-primary) 0%, var(--color-hospital-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--color-hospital-accent) 0%, var(--color-hospital-medium) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(to right, #f6f7f8 8%, #edeef1 38%, #f6f7f8 54%);
+  background-size: 1000px 640px;
+}
+
+.dark .shimmer {
+  background: linear-gradient(to right, #2d3748 8%, #4a5568 38%, #2d3748 54%);
+  background-size: 1000px 640px;
+}
+
+/* Custom checkbox styles */
+.custom-checkbox {
+  height: 1rem;
+  width: 1rem;
+  border-radius: 0.25rem;
+  border-color: #d1d5db;
+  color: var(--color-hospital-accent);
+}
+
+.custom-checkbox:focus {
+  ring-color: var(--color-hospital-accent);
+  ring-offset-width: 0;
+}
+
+/* Custom radio styles */
+.custom-radio {
+  height: 1rem;
+  width: 1rem;
+  border-color: #d1d5db;
+  color: var(--color-hospital-accent);
+}
+
+.custom-radio:focus {
+  ring-color: var(--color-hospital-accent);
+  ring-offset-width: 0;
+}
+
+/* Notification toast styles */
+.toast-enter {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.toast-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: all 0.3s ease-out;
+}
+
+.toast-exit {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-exit-active {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s ease-in;
+}
+
+/* Calendar styles */
+.calendar-day {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: colors 0.2s ease-in-out;
+}
+
+.calendar-day:hover {
+  background-color: rgba(135, 71, 208, 0.1);
+  color: var(--color-hospital-accent);
+}
+
+.calendar-day.selected {
+  background-color: var(--color-hospital-accent);
+  color: white;
+}
+
+.calendar-day.disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.calendar-day.today {
+  background-color: var(--color-hospital-secondary);
+  color: white;
+}
+
+/* Sidebar transition */
+.sidebar-transition {
+  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+}
+
+/* Mobile menu overlay */
+.mobile-menu-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
 }

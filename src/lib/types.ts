@@ -1,0 +1,247 @@
+/**
+ * TypeScript type definitions for the application
+ */
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: 'male' | 'female' | 'other';
+  address?: string;
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  role: 'patient' | 'doctor' | 'admin';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Doctor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  departmentId: string;
+  qualification: string[];
+  experience: number; // years
+  bio: string;
+  rating: number;
+  reviewCount: number;
+  location: string;
+  consultationFee: number;
+  availableSlots: string[];
+  languages: string[];
+  profileImage?: string;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  doctorCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Appointment {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  departmentId: string;
+  date: string;
+  time: string;
+  duration: number; // minutes
+  type: 'consultation' | 'follow-up' | 'emergency' | 'routine-checkup';
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  notes?: string;
+  symptoms?: string;
+  diagnosis?: string;
+  prescription?: string;
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  amount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Review {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  appointmentId: string;
+  rating: number;
+  comment: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'appointment' | 'reminder' | 'system' | 'promotion';
+  isRead: boolean;
+  actionUrl?: string;
+  createdAt: string;
+}
+
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  appointmentId: string;
+  date: string;
+  diagnosis: string;
+  symptoms: string;
+  treatment: string;
+  prescription: string;
+  labResults?: string;
+  notes?: string;
+  attachments?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TimeSlot {
+  id: string;
+  doctorId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+  appointmentId?: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  appointmentId: string;
+  patientId: string;
+  amount: number;
+  currency: string;
+  method: 'credit-card' | 'debit-card' | 'insurance' | 'cash' | 'bank-transfer';
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  transactionId?: string;
+  paymentDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// UI State interfaces
+export interface FilterState {
+  searchTerm: string;
+  department: string;
+  location: string;
+  availability: string;
+  rating: number;
+  priceRange: [number, number];
+}
+
+export interface AppointmentFilters {
+  status: string;
+  dateRange: [string, string];
+  doctorId: string;
+  departmentId: string;
+}
+
+export interface DashboardStats {
+  totalPatients: number;
+  totalDoctors: number;
+  totalAppointments: number;
+  totalRevenue: number;
+  appointmentsToday: number;
+  availableDoctors: number;
+  averageRating: number;
+  completionRate: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  type: 'appointment' | 'break' | 'meeting' | 'blocked';
+  doctorId?: string;
+  patientId?: string;
+  appointmentId?: string;
+  color?: string;
+}
+
+// Form interfaces
+export interface AppointmentFormData {
+  doctorId: string;
+  departmentId: string;
+  date: string;
+  time: string;
+  type: string;
+  symptoms: string;
+  notes?: string;
+}
+
+export interface ProfileFormData {
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+  address: string;
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+}
+
+export interface DoctorFormData {
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  departmentId: string;
+  qualification: string[];
+  experience: number;
+  bio: string;
+  location: string;
+  consultationFee: number;
+  languages: string[];
+  availableSlots: string[];
+}
+
+// API Response interfaces
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+  errors?: string[];
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+  refreshToken: string;
+  expiresAt: string;
+}
