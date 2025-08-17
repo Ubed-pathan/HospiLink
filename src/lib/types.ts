@@ -6,6 +6,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  contactNumber?: string;
   phone?: string;
   dateOfBirth?: string;
   gender?: 'male' | 'female' | 'other';
@@ -16,30 +17,39 @@ export interface User {
     relationship: string;
   };
   role: 'patient' | 'doctor' | 'admin';
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  profileImage?: string;
 }
 
 export interface Doctor {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  specialization: string;
-  departmentId: string;
-  qualification: string[];
+  email?: string;
+  phone?: string;
+  specialty: string;
+  specialization?: string;
+  department: string;
+  departmentId?: string;
+  qualification?: string[];
+  education?: string;
   experience: number; // years
-  bio: string;
+  bio?: string;
   rating: number;
-  reviewCount: number;
-  location: string;
-  consultationFee: number;
-  availableSlots: string[];
-  languages: string[];
+  reviewCount?: number;
+  location?: string;
+  consultationFee?: number;
+  availableSlots?: string[];
+  availability?: {
+    day: string;
+    slots: string[];
+  }[];
+  languages?: string[];
+  image?: string;
   profileImage?: string;
-  isAvailable: boolean;
-  createdAt: string;
-  updatedAt: string;
+  isAvailable?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Department {
@@ -47,31 +57,39 @@ export interface Department {
   name: string;
   description: string;
   icon: string;
-  color: string;
-  doctorCount: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  color?: string;
+  image?: string;
+  specialties?: string[];
+  doctors?: string[];
+  doctorCount?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Appointment {
   id: string;
   patientId: string;
   doctorId: string;
-  departmentId: string;
+  doctorName?: string;
+  doctorSpecialty?: string;
+  department?: string;
+  departmentId?: string;
   date: string;
-  time: string;
-  duration: number; // minutes
-  type: 'consultation' | 'follow-up' | 'emergency' | 'routine-checkup';
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  time?: string;
+  timeSlot?: string;
+  duration?: number; // minutes
+  type?: 'consultation' | 'follow-up' | 'emergency' | 'routine-checkup' | 'checkup';
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show' | 'pending';
   notes?: string;
   symptoms?: string;
   diagnosis?: string;
   prescription?: string;
-  paymentStatus: 'pending' | 'paid' | 'refunded';
-  amount: number;
-  createdAt: string;
-  updatedAt: string;
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+  amount?: number;
+  consultationFee?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Review {

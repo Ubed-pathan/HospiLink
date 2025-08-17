@@ -4,7 +4,7 @@
  */
 
 import api from './api';
-import { User, Doctor, Department, Appointment } from './atoms';
+import { User, Doctor, Department, Appointment } from './types';
 
 // Authentication APIs
 export const authAPI = {
@@ -47,6 +47,12 @@ export const authAPI = {
   // Logout
   logout: async () => {
     const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  // Load user on refresh
+  loadOnRefresh: async () => {
+    const response = await api.get('/loadOnRefresh');
     return response.data;
   },
 };

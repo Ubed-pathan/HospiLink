@@ -305,3 +305,16 @@ body {
     display: block !important;
   }
 }
+
+/* Enhanced placeholder visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #9CA3AF !important;
+  opacity: 1 !important;
+}
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+  color: #D1D5DB !important;
+  opacity: 0.8 !important;
+}

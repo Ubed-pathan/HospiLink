@@ -3,7 +3,7 @@
  * Simulates backend data for testing and demonstration purposes
  */
 
-import { Doctor, Department, Appointment, User } from './atoms';
+import { Doctor, Department, Appointment, User } from './types';
 
 // Mock Users
 export const mockUsers: User[] = [

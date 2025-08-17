@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Stethoscope, Heart, Shield } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider-simple';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { authAPI } from '@/lib/api-services';
 
 export default function SignInPage() {
@@ -115,7 +115,7 @@ export default function SignInPage() {
             </div>
             
             <div className="text-center text-blue-100 text-sm">
-              <p>&ldquo;Transforming healthcare one appointment at a time&rdquo;</p>
+              <p>"Transforming healthcare one appointment at a time"</p>
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function SignInPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                       placeholder="Enter your email"
                       required
                     />
@@ -211,7 +211,7 @@ export default function SignInPage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                       placeholder="Enter your password"
                       required
                     />
@@ -251,7 +251,7 @@ export default function SignInPage() {
                 
                 <div className="text-center">
                   <p className="text-gray-600 text-sm">
-                    Don&apos;t have an account?{' '}
+                    Don't have an account?{' '}
                     <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
                       Create account
                     </Link>
@@ -268,7 +268,7 @@ export default function SignInPage() {
                   <div>
                     <h4 className="text-sm font-medium text-blue-800">Demo Mode</h4>
                     <p className="text-xs text-blue-600 mt-1">
-                      Click &ldquo;Continue with Google&rdquo; to experience the demo. Real OAuth integration available in production.
+                      Click "Continue with Google" to experience the demo. Real OAuth integration available in production.
                     </p>
                   </div>
                 </div>

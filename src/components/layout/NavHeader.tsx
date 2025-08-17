@@ -37,7 +37,7 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-8">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -49,8 +49,21 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
             ))}
           </div>
 
+          {/* Tablet Navigation - Compact */}
+          <div className="hidden md:flex lg:hidden items-center space-x-4">
+            {navItems.slice(0, 3).map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors text-sm"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
           {/* Desktop CTA Buttons */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-4">
             <Link
               href="/portal"
               className="text-gray-600 hover:text-blue-600 font-medium transition-colors"
@@ -65,10 +78,20 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
             </Link>
           </div>
 
+          {/* Tablet CTA Button - Compact */}
+          <div className="hidden md:flex lg:hidden items-center">
+            <Link
+              href="/appointment"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors text-sm"
+            >
+              Book Now
+            </Link>
+          </div>
+
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -76,7 +99,7 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 bg-white">
+          <div className="lg:hidden py-4 border-t border-gray-200 bg-white">
             {navItems.map((item) => (
               <Link
                 key={item.name}
