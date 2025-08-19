@@ -51,8 +51,19 @@ export default function SignInPage() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
+    // Custom validation to avoid native browser popup alerts
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       console.log('Attempting signin for email:', email);
       const response = await authAPI.signin(email, password);
@@ -189,7 +200,7 @@ export default function SignInPage() {
                 </div>
 
                 {/* Email Sign In Form */}
-                <form onSubmit={handleEmailSignIn} className="space-y-4">
+                <form onSubmit={handleEmailSignIn} noValidate className="space-y-4" autoComplete="off">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address
@@ -199,9 +210,10 @@ export default function SignInPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-gray-900 ${error && error.toLowerCase().includes('email') ? 'border-red-400 focus:ring-red-300' : 'border-gray-200'}`}
                       placeholder="Enter your email"
-                      required
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                   </div>
                   <div>
@@ -213,10 +225,13 @@ export default function SignInPage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-gray-900 ${error && error.toLowerCase().includes('password') ? 'border-red-400 focus:ring-red-300' : 'border-gray-200'}`}
                       placeholder="Enter your password"
-                      required
+                      autoComplete="new-password"
                     />
+                    {error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('email')) && (
+                      <p className="mt-2 text-xs text-red-600 flex items-center gap-1">{error}</p>
+                    )}
                   </div>
                   
                   <button
@@ -261,20 +276,7 @@ export default function SignInPage() {
                 </div>
               </div>
 
-              {/* Demo Notice */}
-              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center mt-0.5">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-800">Demo Mode</h4>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Click &ldquo;Continue with Google&rdquo; to experience the demo. Real OAuth integration available in production.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              {/* Demo notice removed as requested */}
             </div>
           </div>
         </div>

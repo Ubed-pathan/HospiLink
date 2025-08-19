@@ -7,21 +7,48 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, ArrowRight, Check, Loader2, ArrowLeft, Stethoscope, User, Phone, Calendar, MapPin } from 'lucide-react';
+import { Mail, ArrowRight, Check, Loader2, ArrowLeft, Stethoscope, UserRound } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider-simple';
 import { authAPI } from '@/lib/api-services';
 
+// Aligning frontend form with backend UserRegistrationDto
+// Backend DTO fields:
+// firstName, middleName, lastName, username, email, password, age,
+// phoneNumber, address, city, state, country, zipCode
 interface SignUpFormData {
   email: string;
-  otp: string;
-  name: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other' | '';
-  address: string;
+  otp: string;              // 6-digit verification code
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  username: string;
   password: string;
   confirmPassword: string;
+  age: string;              // keep as string for controlled input, convert to number on submit
+  phoneNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
 }
+
+// Local DTO type matching backend registration expectations
+type RegistrationDto = {
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+  age: number;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+};
 
 type SignUpStep = 'email' | 'otp' | 'details' | 'success';
 
@@ -30,17 +57,29 @@ export default function SignUpPage() {
   const [formData, setFormData] = useState<SignUpFormData>({
     email: '',
     otp: '',
-    name: '',
-    phone: '',
-    dateOfBirth: '',
-    gender: '',
-    address: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    username: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    age: '',
+    phoneNumber: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    zipCode: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+
+  // Sanitize and enforce 10-digit local phone number (backend column length=10)
+  const handlePhoneChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 10); // keep max 10 digits
+    setFormData(prev => ({ ...prev, phoneNumber: digitsOnly }));
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,28 +135,36 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     try {
-      console.log('Completing registration with details:', {
-        email: formData.email,
-        name: formData.name,
-        contactNumber: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        address: formData.address,
-        role: 'patient'
-      });
-      
-      const response = await authAPI.completeRegistration({
-        email: formData.email,
-        name: formData.name,
-        contactNumber: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender as 'male' | 'female' | 'other',
-        address: formData.address,
+      // Validate phone number length matches backend constraint
+      if (formData.phoneNumber.length !== 10) {
+        setError('Phone number must be exactly 10 digits.');
+        setIsLoading(false);
+        return;
+      }
+      // Build DTO matching backend expectations
+      const dto = {
+        firstName: formData.firstName.trim(),
+        middleName: formData.middleName.trim() || null,
+        lastName: formData.lastName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
         password: formData.password,
-        role: 'patient'
-      });
-      
+        age: Number(formData.age) || 0,
+        phoneNumber: formData.phoneNumber.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        country: formData.country.trim(),
+        zipCode: formData.zipCode.trim(),
+      };
+
+      console.log('Submitting registration DTO:', dto);
+
+  // TODO: Create a frontend type for the registration DTO if reused elsewhere
+  // Cast dto to expected shape (service expects at least password field inside partial User)
+  const response = await authAPI.completeRegistration(dto as unknown as RegistrationDto & { password: string });
       console.log('Registration Response:', response);
+      // Expecting response with user + token
       login(response);
     } catch (error) {
       console.error('Registration Error:', error);
@@ -159,7 +206,7 @@ export default function SignUpPage() {
     const steps = [
       { key: 'email', label: 'Email', icon: Mail },
       { key: 'otp', label: 'Verify', icon: Check },
-      { key: 'details', label: 'Details', icon: User }
+  { key: 'details', label: 'Details', icon: UserRound }
     ];
 
     return (
@@ -246,7 +293,7 @@ export default function SignUpPage() {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-gray-900"
               placeholder="Enter your email address"
               required
             />
@@ -273,202 +320,274 @@ export default function SignUpPage() {
     </div>
   );
 
-  const renderOtpStep = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Email</h2>
-        <p className="text-gray-600">
-          We&apos;ve sent a verification code to<br />
-          <span className="font-medium text-blue-600">{formData.email}</span>
-        </p>
-      </div>
+  // Enhanced OTP input with 6 separate boxes for better visibility
+  const renderOtpStep = () => {
+    const otpDigits = Array.from({ length: 6 }, (_, i) => formData.otp[i] || '');
 
-      <form onSubmit={handleOtpSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
-            Verification Code
-          </label>
-          <input
-            id="otp"
-            type="text"
-            value={formData.otp}
-            onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-center text-2xl tracking-widest"
-            placeholder="000000"
-            maxLength={6}
-            required
-          />
-          <p className="text-sm text-gray-500 mt-2">Enter the 6-digit code from your email</p>
-        </div>
+    const updateDigit = (index: number, value: string) => {
+      if (!/^[0-9]?$/.test(value)) return; // only allow digits
+      const chars = formData.otp.split('');
+      chars[index] = value;
+      const newOtp = chars.join('').slice(0, 6);
+      setFormData({ ...formData, otp: newOtp });
+      // Auto-focus next input
+      if (value && index < 5) {
+        const next = document.getElementById(`otp-${index + 1}`) as HTMLInputElement | null;
+        next?.focus();
+      }
+    };
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setCurrentStep('email')}
-            className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              <>
-                Verify <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
-        </div>
+    const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Backspace' && !formData.otp[index] && index > 0) {
+        const prev = document.getElementById(`otp-${index - 1}`) as HTMLInputElement | null;
+        prev?.focus();
+      }
+    };
 
+    return (
+      <div className="space-y-6">
         <div className="text-center">
-          <button
-            type="button"
-            onClick={handleEmailSubmit}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-          >
-            Resend verification code
-          </button>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Email</h2>
+            <p className="text-gray-600">
+              We&apos;ve sent a verification code to<br />
+              <span className="font-medium text-blue-600">{formData.email}</span>
+            </p>
         </div>
-      </form>
-    </div>
-  );
+        <form onSubmit={handleOtpSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Verification Code</label>
+            <div className="flex justify-between gap-2">
+              {otpDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  id={`otp-${i}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => updateDigit(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  className="w-12 h-14 rounded-xl border-2 border-gray-200 bg-white text-center text-2xl font-medium tracking-wider focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm text-gray-900"
+                  placeholder="•"
+                  required
+                />
+              ))}
+            </div>
+            <p className="text-sm text-gray-500 mt-3">Enter the 6-digit code from your email</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep('email')}
+              className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || formData.otp.length !== 6}
+              className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  Verify <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </div>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleEmailSubmit}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+            >
+              Resend verification code
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
 
   const renderDetailsStep = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Profile</h2>
-        <p className="text-gray-600">Tell us a bit about yourself to personalize your experience</p>
+        <p className="text-gray-600">Enter your details to finish creating your account</p>
       </div>
-
-      <form onSubmit={handleDetailsSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
+      <form onSubmit={handleDetailsSubmit} className="space-y-5">
+        {/* Name fields */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 inline mr-2" />
-              Full Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
             <input
-              id="name"
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
-              placeholder="Enter your full name"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="First"
               required
             />
           </div>
-
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              <Phone className="w-4 h-4 inline mr-2" />
-              Phone Number
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
             <input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
-              placeholder="+1 (555) 000-0000"
-              required
+              type="text"
+              value={formData.middleName}
+              onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Middle (optional)"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
-                Date of Birth
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
               <input
-                id="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+                placeholder="Last"
                 required
               />
             </div>
-
-            <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">
-                Gender
-              </label>
-              <select
-                id="gender"
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'male' | 'female' | 'other' })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                required
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
+        </div>
+        {/* Username & Age */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-2" />
-              Address
-            </label>
-            <textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
-              placeholder="Enter your address"
-              rows={3}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Choose a username"
               required
             />
           </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
-                placeholder="Create a strong password"
-                minLength={8}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300"
-                placeholder="Confirm your password"
-                minLength={8}
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={formData.age}
+              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Age"
+              required
+            />
           </div>
         </div>
-
-        <div className="flex gap-3 pt-4">
+        {/* Contact */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]{10}"
+            value={formData.phoneNumber}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900 tracking-widest"
+            placeholder="10-digit phone"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter 10 digits (no country code). Backend column length is 10.</p>
+        </div>
+        {/* Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+          <textarea
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+            placeholder="Street address"
+            rows={2}
+            required
+          />
+        </div>
+        {/* Location details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <input
+              type="text"
+              value={formData.city}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="City"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <input
+              type="text"
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="State"
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+            <input
+              type="text"
+              value={formData.country}
+              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Country"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
+            <input
+              type="text"
+              value={formData.zipCode}
+              onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Zip / Postal code"
+              required
+            />
+          </div>
+        </div>
+        {/* Passwords */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Create a strong password"
+              minLength={8}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Re-enter password"
+              minLength={8}
+              required
+            />
+          </div>
+        </div>
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={() => setCurrentStep('otp')}

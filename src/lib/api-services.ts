@@ -32,9 +32,9 @@ export const authAPI = {
     return response.data;
   },
 
-  // Regular signin
+  // Regular signin (updated path)
   signin: async (email: string, password: string) => {
-    const response = await api.post('/auth/signin', { email, password });
+    const response = await api.post('/user/signin', { email, password });
     return response.data;
   },
 
