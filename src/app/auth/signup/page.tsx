@@ -48,10 +48,13 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     try {
-      await authAPI.sendOTP(formData.email);
+      console.log('Sending OTP to:', formData.email);
+      const response = await authAPI.sendOTP(formData.email);
+      console.log('OTP Response:', response);
       setCurrentStep('otp');
-    } catch {
-      setError('Failed to send OTP. Please try again.');
+    } catch (error) {
+      console.error('OTP Error:', error);
+      setError('Failed to send OTP. Please check if backend server is running on localhost:1115');
     } finally {
       setIsLoading(false);
     }
@@ -63,10 +66,13 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     try {
-      await authAPI.verifyOTP(formData.email, formData.otp);
+      console.log('Verifying OTP:', formData.otp, 'for email:', formData.email);
+      const response = await authAPI.verifyOTP(formData.email, formData.otp);
+      console.log('OTP Verification Response:', response);
       setCurrentStep('details');
-    } catch {
-      setError('Invalid OTP. Please try again.');
+    } catch (error) {
+      console.error('OTP Verification Error:', error);
+      setError('Invalid OTP. Please check if backend server is running on localhost:1115');
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +96,16 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     try {
+      console.log('Completing registration with details:', {
+        email: formData.email,
+        name: formData.name,
+        contactNumber: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address,
+        role: 'patient'
+      });
+      
       const response = await authAPI.completeRegistration({
         email: formData.email,
         name: formData.name,
@@ -101,9 +117,11 @@ export default function SignUpPage() {
         role: 'patient'
       });
       
+      console.log('Registration Response:', response);
       login(response);
-    } catch {
-      setError('Failed to create account. Please try again.');
+    } catch (error) {
+      console.error('Registration Error:', error);
+      setError('Failed to create account. Please check if backend server is running on localhost:1115');
     } finally {
       setIsLoading(false);
     }

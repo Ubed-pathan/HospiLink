@@ -74,15 +74,19 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       try {
         setAuthState(prev => ({ ...prev, isLoading: true }));
         
-        // Make request to loadOnRefresh endpoint
-        const response = await authAPI.loadOnRefresh();
+        // For now, skip the loadOnRefresh call since backend might not be ready
+        // You can enable this when your backend /loadOnRefresh endpoint is ready
+        // const response = await authAPI.loadOnRefresh();
         
-        if (response.success && response.user) {
-          // User is authenticated, update state
+        // Check if user has a token in localStorage
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          // If token exists, assume user is authenticated
+          // In production, you'd validate the token with the backend
           setAuthState({
             isAuthenticated: true,
-            user: response.user,
-            token: response.token || null,
+            user: null, // Will be populated when backend is connected
+            token: token,
             isLoading: false,
           });
           

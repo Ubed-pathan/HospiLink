@@ -54,11 +54,13 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
-      // Mock email signin - replace with actual API call
+      console.log('Attempting signin for email:', email);
       const response = await authAPI.signin(email, password);
+      console.log('Login Response:', response);
       login(response);
-    } catch {
-      setError('Invalid email or password. Please try again.');
+    } catch (error) {
+      console.error('Login Error:', error);
+      setError('Invalid email or password. Please check if backend server is running on localhost:1115');
     } finally {
       setIsLoading(false);
     }

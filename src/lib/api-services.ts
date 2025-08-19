@@ -16,19 +16,19 @@ export const authAPI = {
 
   // Send OTP for registration
   sendOTP: async (email: string) => {
-    const response = await api.post('/auth/send-otp', { email });
+    const response = await api.post('/user/send-otp', { email });
     return response.data;
   },
 
   // Verify OTP
   verifyOTP: async (email: string, otp: string) => {
-    const response = await api.post('/auth/verify-otp', { email, otp });
+    const response = await api.post('/user/verify-otp', { email, otp });
     return response.data;
   },
 
   // Complete registration
   completeRegistration: async (userData: Partial<User> & { password: string }) => {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post('/user/register', userData);
     return response.data;
   },
 
