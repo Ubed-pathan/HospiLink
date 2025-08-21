@@ -14,7 +14,7 @@ import { authAPI } from '@/lib/api-services';
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
 
@@ -53,9 +53,8 @@ export default function SignInPage() {
     setError('');
 
     // Custom validation to avoid native browser popup alerts
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
-      setError('Please enter a valid email address.');
+    if (!username.trim()) {
+      setError('Username is required.');
       return;
     }
     if (!password || password.length < 6) {
@@ -65,13 +64,13 @@ export default function SignInPage() {
 
     setIsLoading(true);
     try {
-      console.log('Attempting signin for email:', email);
-      const response = await authAPI.signin(email, password);
+  console.log('Attempting signin for username:', username);
+  const response = await authAPI.signin(username, password);
       console.log('Login Response:', response);
       login(response);
     } catch (error) {
       console.error('Login Error:', error);
-      setError('Invalid email or password. Please check if backend server is running on localhost:1115');
+  setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);
     }
@@ -202,17 +201,17 @@ export default function SignInPage() {
                 {/* Email Sign In Form */}
                 <form onSubmit={handleEmailSignIn} noValidate className="space-y-4" autoComplete="off">
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                      Username
                     </label>
                     <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-gray-900 ${error && error.toLowerCase().includes('email') ? 'border-red-400 focus:ring-red-300' : 'border-gray-200'}`}
-                      placeholder="Enter your email"
-                      autoComplete="off"
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white placeholder-gray-400 focus:placeholder-gray-300 text-gray-900 ${error && error.toLowerCase().includes('username') ? 'border-red-400 focus:ring-red-300' : 'border-gray-200'}`}
+                      placeholder="Enter your username"
+                      autoComplete="username"
                       spellCheck={false}
                     />
                   </div>
@@ -229,9 +228,7 @@ export default function SignInPage() {
                       placeholder="Enter your password"
                       autoComplete="new-password"
                     />
-                    {error && (error.toLowerCase().includes('password') || error.toLowerCase().includes('email')) && (
-                      <p className="mt-2 text-xs text-red-600 flex items-center gap-1">{error}</p>
-                    )}
+                    {error && <p className="mt-2 text-xs text-red-600 flex items-center gap-1">{error}</p>}
                   </div>
                   
                   <button
@@ -253,11 +250,7 @@ export default function SignInPage() {
                 </form>
               </div>
 
-              {error && (
-                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
+              {/* Removed standalone error alert box as requested; inline error shown below password field */}
 
               <div className="mt-8 space-y-4">
                 <div className="text-center">

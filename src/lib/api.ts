@@ -6,7 +6,15 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Base API configuration
+// API base URL: prefer env var, fall back to local backend default for dev convenience
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1115';
+declare global {
+  interface Window { __HOSPILINK_API_URL_WARNED__?: boolean }
+}
+if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined' && !window.__HOSPILINK_API_URL_WARNED__) {
+  console.warn('NEXT_PUBLIC_API_URL not set. Falling back to http://localhost:1115. Define it in .env.local to silence this warning.');
+  window.__HOSPILINK_API_URL_WARNED__ = true;
+}
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

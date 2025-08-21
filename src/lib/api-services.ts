@@ -32,9 +32,9 @@ export const authAPI = {
     return response.data;
   },
 
-  // Regular signin (updated path)
-  signin: async (email: string, password: string) => {
-    const response = await api.post('/user/signin', { email, password });
+  // Regular signin (backend expects LoginDto { username, password })
+  signin: async (username: string, password: string) => {
+    const response = await api.post('/user/login', { username, password }, { withCredentials: true });
     return response.data;
   },
 

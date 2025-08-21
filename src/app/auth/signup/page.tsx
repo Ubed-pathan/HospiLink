@@ -93,7 +93,7 @@ export default function SignUpPage() {
       setCurrentStep('otp');
     } catch (error) {
       console.error('OTP Error:', error);
-      setError('Failed to send OTP. Please check if backend server is running on localhost:1115');
+  setError(`Failed to send OTP. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +111,7 @@ export default function SignUpPage() {
       setCurrentStep('details');
     } catch (error) {
       console.error('OTP Verification Error:', error);
-      setError('Invalid OTP. Please check if backend server is running on localhost:1115');
+  setError(`Invalid OTP. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);
     }
@@ -164,11 +164,14 @@ export default function SignUpPage() {
   // Cast dto to expected shape (service expects at least password field inside partial User)
   const response = await authAPI.completeRegistration(dto as unknown as RegistrationDto & { password: string });
       console.log('Registration Response:', response);
-      // Expecting response with user + token
-      login(response);
+      // Registration successful, redirect to login page
+      setCurrentStep('success');
+      setTimeout(() => {
+        window.location.href = '/auth/signin';
+      }, 1200);
     } catch (error) {
       console.error('Registration Error:', error);
-      setError('Failed to create account. Please check if backend server is running on localhost:1115');
+  setError(`Failed to create account. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);
     }
@@ -445,17 +448,17 @@ export default function SignUpPage() {
               placeholder="Middle (optional)"
             />
           </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
-                placeholder="Last"
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-900"
+              placeholder="Last"
+              required
+            />
+          </div>
         </div>
         {/* Username & Age */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -617,6 +620,16 @@ export default function SignUpPage() {
     </div>
   );
 
+  // Success message step
+  const renderSuccessStep = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Check className="w-16 h-16 text-green-500 mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+      <p className="text-gray-600 mb-4">You will be redirected to the login page.</p>
+      <Link href="/auth/signin" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">Go to Login</Link>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
@@ -685,6 +698,7 @@ export default function SignUpPage() {
               {currentStep === 'email' && renderEmailStep()}
               {currentStep === 'otp' && renderOtpStep()}
               {currentStep === 'details' && renderDetailsStep()}
+              {currentStep === 'success' && renderSuccessStep()}
 
               {error && (
                 <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
