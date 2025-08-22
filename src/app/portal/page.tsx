@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Calendar, 
@@ -23,16 +23,28 @@ import {
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
+import { useRecoilValue } from 'recoil';
+import { authState } from '@/lib/atoms';
+import { useRouter } from 'next/navigation';
 
 export default function PatientPortalPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { isAuthenticated, user } = useRecoilValue(authState);
+  const router = useRouter();
 
-  // Mock current user data
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [isAuthenticated, router]);
+
+  if (!user) return null;
+
   const currentUser = {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: 'JD'
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.name?.split(' ').map((n: string) => n[0]).join('') || 'U',
   };
 
   const upcomingAppointments = mockAppointments.filter(apt => 

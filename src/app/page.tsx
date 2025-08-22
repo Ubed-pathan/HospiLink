@@ -5,7 +5,24 @@ import Link from 'next/link';
 import { Calendar, Shield, Users, CheckCircle, Star, Clock } from 'lucide-react';
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider-simple';
+
 export default function HomePage() {
+  const { isAuthenticated, isInitialized } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isInitialized && !isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [isAuthenticated, isInitialized, router]);
+
+  if (!isInitialized || !isAuthenticated) {
+    return null;
+  }
+
   const features = [
     {
       icon: Calendar,

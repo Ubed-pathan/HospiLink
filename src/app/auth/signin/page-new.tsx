@@ -14,7 +14,7 @@ import { authAPI } from '@/lib/api-services';
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
 
@@ -55,8 +55,9 @@ export default function SignInPage() {
 
     try {
       // Mock email signin - replace with actual API call
-      const response = await authAPI.signin(email, password);
-      login(response);
+  const response = await authAPI.signin(username, password);
+  // response is expected to be UserDto: { id, email, fullName, username }
+  login(response);
     } catch {
       setError('Invalid email or password. Please try again.');
     } finally {
@@ -186,19 +187,19 @@ export default function SignInPage() {
                   </div>
                 </div>
 
-                {/* Email Sign In Form */}
+                {/* Username Sign In Form */}
                 <form onSubmit={handleEmailSignIn} className="space-y-4">
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                      Username
                     </label>
                     <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                      placeholder="Enter your email"
+                      placeholder="Enter your username"
                       required
                     />
                   </div>

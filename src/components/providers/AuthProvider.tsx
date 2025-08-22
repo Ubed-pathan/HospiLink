@@ -8,17 +8,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRecoilState } from 'recoil';
-import { authState, User } from '@/lib/atoms';
+import { authState } from '@/lib/atoms';
 import { authAPI } from '@/lib/api-services';
 
-interface LoginData {
-  user: User;
-  token?: string;
-  success: boolean;
+
+// Backend UserDto
+export interface UserDto {
+  id: string;
+  email: string;
+  fullName: string;
+  username: string;
 }
 
 interface AuthContextType {
-  login: (userData: LoginData) => void;
+  login: (userDto: UserDto) => void;
   logout: () => void;
   isInitialized: boolean;
 }
@@ -46,35 +49,35 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        setAuth(prev => ({ ...prev, isLoading: true }));
+  setAuth((prev: any) => ({ ...prev, isLoading: true }));
         
         // Make request to loadOnRefresh endpoint
         const response = await authAPI.loadOnRefresh();
-        
-        if (response.success && response.user) {
-          // User is authenticated, update state
+        // If backend returns 200 and userDto, treat as authenticated
+        if (response && response.id && response.username) {
           setAuth({
             isAuthenticated: true,
-            user: response.user,
-            token: response.token || null,
+            user: {
+              id: response.id,
+              email: response.email,
+              name: response.fullName,
+              username: response.username,
+            },
+            token: null,
             isLoading: false,
           });
-          
           // Redirect to home if currently on auth page
           const currentPath = window.location.pathname;
           if (currentPath.startsWith('/auth/')) {
             router.push('/');
           }
         } else {
-          // User is not authenticated
           setAuth({
             isAuthenticated: false,
             user: null,
             token: null,
             isLoading: false,
           });
-          
-          // Redirect to signin if not on auth page
           const currentPath = window.location.pathname;
           if (!currentPath.startsWith('/auth/')) {
             router.push('/auth/signin');
@@ -103,20 +106,18 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, [setAuth, router]);
 
-  const login = (userData: LoginData) => {
+  const login = (userDto: { id: string; email: string; fullName: string; username: string }) => {
     setAuth({
       isAuthenticated: true,
-      user: userData.user,
-      token: userData.token || null,
+      user: {
+        id: userDto.id,
+        email: userDto.email,
+        name: userDto.fullName,
+        username: userDto.username,
+      },
+      token: null,
       isLoading: false,
     });
-    
-    // Store token in localStorage if provided
-    if (userData.token) {
-      localStorage.setItem('auth_token', userData.token);
-    }
-    
-    // Redirect to home
     router.push('/');
   };
 

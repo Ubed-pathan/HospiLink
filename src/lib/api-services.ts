@@ -52,7 +52,7 @@ export const authAPI = {
 
   // Load user on refresh
   loadOnRefresh: async () => {
-    const response = await api.get('/loadOnRefresh');
+    const response = await api.get('/user/loadOnRefresh');
     return response.data;
   },
 };
