@@ -13,13 +13,8 @@ export default function HomePage() {
   const { isAuthenticated, isInitialized } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (isInitialized && !isAuthenticated) {
-      router.push('/auth/signin');
-    }
-  }, [isAuthenticated, isInitialized, router]);
-
-  if (!isInitialized || !isAuthenticated) {
+  // Remove redirect to /auth/signin from landing page
+  if (!isInitialized) {
     return null;
   }
 
@@ -78,7 +73,7 @@ export default function HomePage() {
     <ConditionalLayout>
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
-        <section className="bg-white border-b border-gray-100 pt-16">
+  <section className="bg-white">
           <div className="container mx-auto px-4 py-12 md:py-20">
             <div className="max-w-6xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">

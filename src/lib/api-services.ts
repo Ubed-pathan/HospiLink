@@ -52,8 +52,25 @@ export const authAPI = {
 
   // Load user on refresh
   loadOnRefresh: async () => {
-    const response = await api.get('/user/loadOnRefresh');
-    return response.data;
+    try {
+      const response = await api.get('/user/loadOnRefresh');
+      if (response.status !== 200) {
+        const error = new Error('Not authenticated');
+        // @ts-ignore
+        error.status = response.status;
+        throw error;
+      }
+      return response.data;
+    } catch (err: any) {
+      // If error is axios error, check for response status
+      if (err.response && err.response.status !== 200) {
+        const error = new Error('Not authenticated');
+        // @ts-ignore
+        error.status = err.response.status;
+        throw error;
+      }
+      throw err;
+    }
   },
 };
 

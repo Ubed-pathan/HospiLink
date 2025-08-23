@@ -28,7 +28,7 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
   return (
     <>
       {showNavFooter && <NavHeader />}
-      <main className={showNavFooter ? 'pt-16' : ''}>
+      <main>
         {children}
       </main>
       {showNavFooter && <Footer />}

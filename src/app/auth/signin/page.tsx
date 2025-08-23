@@ -5,42 +5,80 @@
 
 'use client';
 
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Stethoscope, Heart, Shield } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider-simple';
 import { authAPI } from '@/lib/api-services';
+import { useSetRecoilState } from 'recoil';
+import { authState as recoilAuthState } from '@/lib/atoms';
+import { useRouter } from 'next/navigation';
+
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth();
+  // No useAuth, use Recoil only
+  const setRecoilAuth = useSetRecoilState(recoilAuthState);
+  const router = useRouter();
+
+  // Only check /user/loadOnRefresh once per mount
+  const hasCheckedRef = React.useRef(false);
+  useEffect(() => {
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
+    const checkAuth = async () => {
+      try {
+        const response = await authAPI.loadOnRefresh();
+        if (response && response.id && response.username) {
+          const user = {
+            id: response.id,
+            email: response.email,
+            name: response.fullName,
+            username: response.username,
+            role: 'patient' as const,
+          };
+          setRecoilAuth({
+            isAuthenticated: true,
+            user,
+            token: null,
+            isLoading: false,
+          });
+          // Redirect to landing page if already authenticated
+          router.push('/');
+        }
+      } catch {
+        // Not authenticated, stay on signin page
+      }
+    };
+    checkAuth();
+  }, [setRecoilAuth, router]);
 
   const handleGoogleSignIn = async () => {
     setError('');
     setIsLoading(true);
-
     try {
       // Mock Google OAuth flow - in production this would use real OAuth
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
       // Mock successful response
-      const mockResponse = {
-        success: true,
-        user: {
-          id: '1',
-          email: 'user@example.com',
-          name: 'John Doe',
-          role: 'patient' as const,
-          contactNumber: '+1234567890',
-          profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-        },
-        token: 'mock-jwt-token'
+      const user = {
+        id: '1',
+        email: 'user@example.com',
+        name: 'John Doe',
+        username: 'johndoe',
+        role: 'patient' as const,
+        contactNumber: '+1234567890',
+        profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
       };
-      
-      login(mockResponse);
+      setRecoilAuth({
+        isAuthenticated: true,
+        user,
+        token: 'mock-jwt-token',
+        isLoading: false,
+      });
+      router.push('/');
     } catch {
       setError('Failed to sign in with Google. Please try again.');
     } finally {
@@ -51,7 +89,6 @@ export default function SignInPage() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     // Custom validation to avoid native browser popup alerts
     if (!username.trim()) {
       setError('Username is required.');
@@ -61,16 +98,27 @@ export default function SignInPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
-
     setIsLoading(true);
     try {
-  console.log('Attempting signin for username:', username);
-  const response = await authAPI.signin(username, password);
-      console.log('Login Response:', response);
-      login(response);
+      const response = await authAPI.signin(username, password);
+      const user = {
+        id: response.id,
+        email: response.email,
+        name: response.fullName,
+        username: response.username,
+        role: response.role || 'patient',
+        contactNumber: response.contactNumber,
+        profileImage: response.profileImage,
+      };
+      setRecoilAuth({
+        isAuthenticated: true,
+        user,
+        token: response.token || null,
+        isLoading: false,
+      });
+      router.push('/');
     } catch (error) {
-      console.error('Login Error:', error);
-  setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
+      setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);
     }

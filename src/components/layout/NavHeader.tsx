@@ -25,7 +25,7 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 fixed w-full top-0 z-50">
+    <nav className="bg-white/70 backdrop-blur-md shadow-sm border-b border-gray-200 fixed w-full top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -99,7 +99,7 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-gray-200 bg-white">
+          <div className="lg:hidden py-4 bg-white">
             {navItems.map((item) => (
               <Link
                 key={item.name}

@@ -1,133 +1,77 @@
+"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { authAPI } from '@/lib/api-services';
+import React from "react";
+import { useSetRecoilState } from "recoil";
+import { authState as recoilAuthState } from "@/lib/atoms";
+import { useRouter, usePathname } from "next/navigation";
+import { authAPI } from "@/lib/api-services";
 
-// User interface
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  username: string;
-}
-
-interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-}
-
-interface AuthContextType extends AuthState {
-  login: (user: User) => void;
-  logout: () => void;
-  isInitialized: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
-
-export default function AuthProvider({ children }: AuthProviderProps) {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    token: null,
-    isLoading: false,
-  });
-  const [isInitialized, setIsInitialized] = useState(false);
+export default function RecoilAuthProvider({ children }: { children: React.ReactNode }) {
+  const setRecoilAuth = useSetRecoilState(recoilAuthState);
   const router = useRouter();
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const hasCheckedAuth = React.useRef(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const currentPath = window.location.pathname;
-    if (currentPath.startsWith('/auth/')) {
-      setIsInitialized(true);
-      return;
-    }
-    const checkAuth = async () => {
+  React.useEffect(() => {
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+    let didCancel = false;
+
+    (async () => {
       try {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
+        setRecoilAuth(prev => ({ ...prev, isLoading: true }));
         const response = await authAPI.loadOnRefresh();
-        if (response && response.id && response.username) {
-          setAuthState({
+        // If we get here, status is 200 (handled in api-services)
+        if (!didCancel && response && response.id && response.username) {
+          const user = {
+            id: response.id,
+            email: response.email,
+            name: response.fullName,
+            username: response.username,
+            role: 'patient' as const,
+          };
+          setRecoilAuth({
             isAuthenticated: true,
-            user: {
-              id: response.id,
-              email: response.email,
-              name: response.fullName,
-              username: response.username,
-            },
+            user,
             token: null,
             isLoading: false,
           });
-          if (currentPath.startsWith('/auth/')) {
-            router.push('/');
+          if (pathname !== '/portal') {
+            router.push('/portal');
           }
-        } else {
-          setAuthState({
+        } else if (!didCancel) {
+          setRecoilAuth({
             isAuthenticated: false,
             user: null,
             token: null,
             isLoading: false,
           });
-          router.push('/auth/signin');
+          if (pathname !== '/auth/signin') {
+            router.push('/auth/signin');
+          }
         }
       } catch {
-        setAuthState({
-          isAuthenticated: false,
-          user: null,
-          token: null,
-          isLoading: false,
-        });
-        router.push('/auth/signin');
+        if (!didCancel) {
+          setRecoilAuth({
+            isAuthenticated: false,
+            user: null,
+            token: null,
+            isLoading: false,
+          });
+          if (pathname !== '/auth/signin') {
+            router.push('/auth/signin');
+          }
+        }
       } finally {
-        setIsInitialized(true);
+        if (!didCancel) setIsInitialized(true);
       }
+    })();
+
+    return () => {
+      didCancel = true;
     };
-    checkAuth();
-  }, [router]);
-
-  const login = (user: User) => {
-    setAuthState({
-      isAuthenticated: true,
-      user,
-      token: null,
-      isLoading: false,
-    });
-    router.push('/');
-  };
-
-  const logout = async () => {
-    try {
-      await authAPI.logout();
-  } catch {
-      // ignore
-    }
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      token: null,
-      isLoading: false,
-    });
-    router.push('/auth/signin');
-  };
-
-  const value: AuthContextType = {
-    ...authState,
-    login,
-    logout,
-    isInitialized,
-  };
+  }, []);
 
   if (!isInitialized) {
     return (
@@ -140,9 +84,5 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     );
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <>{children}</>;
 }

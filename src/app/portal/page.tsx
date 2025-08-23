@@ -23,20 +23,27 @@ import {
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
-import { useRecoilValue } from 'recoil';
-import { authState } from '@/lib/atoms';
+
+import { useAuth } from '@/components/providers/AuthProvider-simple';
 import { useRouter } from 'next/navigation';
 
 export default function PatientPortalPage() {
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { isAuthenticated, user } = useRecoilValue(authState);
+  const { isAuthenticated, user, isInitialized } = useAuth();
   const router = useRouter();
 
+  // Only redirect after auth state is initialized
   useEffect(() => {
+    if (!isInitialized) return;
     if (!isAuthenticated) {
       router.push('/auth/signin');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isInitialized, router]);
+
+  if (!isInitialized) {
+    return null;
+  }
 
   if (!user) return null;
 
