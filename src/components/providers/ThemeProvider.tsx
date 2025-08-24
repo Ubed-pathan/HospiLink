@@ -7,15 +7,14 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { themeState } from '@/lib/atoms';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useRecoilState(themeState);
+  // Keep ThemeProvider independent of Recoil to avoid runtime hook issues
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
   // Ensure component is mounted before accessing localStorage
@@ -36,7 +35,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       setTheme(systemTheme);
     }
-  }, [setTheme, mounted]);
+  }, [mounted]);
 
   // Apply theme to document
   useEffect(() => {
@@ -50,8 +49,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.classList.remove('dark');
     }
     
-    // Save to localStorage
-    localStorage.setItem('theme', theme);
+  // Save to localStorage
+  localStorage.setItem('theme', theme);
   }, [theme, mounted]);
 
   // Prevent hydration mismatch by not rendering until mounted

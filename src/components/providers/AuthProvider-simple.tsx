@@ -3,86 +3,75 @@
 import React from "react";
 import { useSetRecoilState } from "recoil";
 import { authState as recoilAuthState } from "@/lib/atoms";
-import { useRouter, usePathname } from "next/navigation";
 import { authAPI } from "@/lib/api-services";
 
 export default function RecoilAuthProvider({ children }: { children: React.ReactNode }) {
   const setRecoilAuth = useSetRecoilState(recoilAuthState);
-  const router = useRouter();
-  const [isInitialized, setIsInitialized] = React.useState(false);
-  const hasCheckedAuth = React.useRef(false);
-  const pathname = usePathname();
+  const MAX_WAIT_MS = Number(process.env.NEXT_PUBLIC_AUTH_MAX_WAIT_MS || 120000); // default 2 minutes
+  const INITIAL_DELAY_MS = 1000;
+  const MAX_DELAY_MS = 5000;
 
   React.useEffect(() => {
-    if (hasCheckedAuth.current) return;
-    hasCheckedAuth.current = true;
     let didCancel = false;
 
+    const maxWait = MAX_WAIT_MS;
+    const initialDelay = INITIAL_DELAY_MS;
+    const maxDelay = MAX_DELAY_MS;
     (async () => {
-      try {
-        setRecoilAuth(prev => ({ ...prev, isLoading: true }));
-        const response = await authAPI.loadOnRefresh();
-        // If we get here, status is 200 (handled in api-services)
-        if (!didCancel && response && response.id && response.username) {
-          const user = {
-            id: response.id,
-            email: response.email,
-            name: response.fullName,
-            username: response.username,
-            role: 'patient' as const,
-          };
-          setRecoilAuth({
-            isAuthenticated: true,
-            user,
-            token: null,
-            isLoading: false,
-          });
-          if (pathname !== '/portal') {
-            router.push('/portal');
+      setRecoilAuth(prev => ({ ...prev, isLoading: true }));
+      const start = Date.now();
+      let delay = initialDelay;
+      while (!didCancel) {
+        try {
+          const response = await authAPI.loadOnRefresh();
+          if (response && response.id && response.username) {
+            if (didCancel) break;
+            const user = {
+              id: response.id,
+              email: response.email,
+              name: response.fullName,
+              username: response.username,
+              role: 'patient' as const,
+            };
+            setRecoilAuth({
+              isAuthenticated: true,
+              user,
+              token: null,
+              isLoading: false,
+            });
+            break;
           }
-        } else if (!didCancel) {
-          setRecoilAuth({
-            isAuthenticated: false,
-            user: null,
-            token: null,
-            isLoading: false,
-          });
-          if (pathname !== '/auth/signin') {
-            router.push('/auth/signin');
+          // If no user fields despite 200, treat as unauth
+          setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+          break;
+        } catch (err: unknown) {
+          // If explicit 401 from backend, stop waiting and mark unauthenticated immediately
+          const e = err as { status?: number; response?: { status?: number } };
+          const status = e?.status ?? e?.response?.status;
+          if (status === 401) {
+            if (didCancel) break;
+            setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+            break;
           }
+          // Retry on network/timeout/server errors until MAX_WAIT_MS
+          const elapsed = Date.now() - start;
+          if (elapsed >= maxWait) {
+            if (didCancel) break;
+            setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+            break;
+          }
+          // Backoff delay
+          await new Promise(res => setTimeout(res, delay));
+          delay = Math.min(maxDelay, Math.floor(delay * 1.5));
+          continue;
         }
-      } catch {
-        if (!didCancel) {
-          setRecoilAuth({
-            isAuthenticated: false,
-            user: null,
-            token: null,
-            isLoading: false,
-          });
-          if (pathname !== '/auth/signin') {
-            router.push('/auth/signin');
-          }
-        }
-      } finally {
-        if (!didCancel) setIsInitialized(true);
       }
     })();
 
     return () => {
       didCancel = true;
     };
-  }, []);
-
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading HospiLink...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [setRecoilAuth, MAX_WAIT_MS, INITIAL_DELAY_MS, MAX_DELAY_MS]);
 
   return <>{children}</>;
 }

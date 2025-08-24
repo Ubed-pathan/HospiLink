@@ -50,10 +50,10 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
+      // Handle unauthorized access: clear token but do NOT hard-redirect.
+      // Navigation is handled centrally by the AuthProvider to avoid reload loops.
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/auth/signin';
+        try { localStorage.removeItem('auth_token'); } catch {}
       }
     }
     

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { RecoilRoot } from 'recoil';
-import AuthProvider from './AuthProvider';
+import AuthProvider from './AuthProvider-simple';
 import { ThemeProvider } from './ThemeProvider';
 
 interface ProvidersProps {

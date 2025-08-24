@@ -31,7 +31,7 @@ export const authState = atom<AuthState>({
     isAuthenticated: false,
     user: null,
     token: null,
-    isLoading: false,
+  isLoading: true,
   },
 });
 

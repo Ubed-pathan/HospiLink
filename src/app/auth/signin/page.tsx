@@ -46,8 +46,7 @@ export default function SignInPage() {
             token: null,
             isLoading: false,
           });
-          // Redirect to landing page if already authenticated
-          router.push('/');
+          router.replace('/portal');
         }
       } catch {
         // Not authenticated, stay on signin page
@@ -117,7 +116,7 @@ export default function SignInPage() {
         isLoading: false,
       });
       router.push('/');
-    } catch (error) {
+  } catch {
       setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
       setIsLoading(false);

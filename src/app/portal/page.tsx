@@ -16,7 +16,6 @@ import {
   Settings,
   Plus,
   Activity,
-  Heart,
   Pill,
   Download
 } from 'lucide-react';
@@ -24,28 +23,25 @@ import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
 
-import { useAuth } from '@/components/providers/AuthProvider-simple';
 import { useRouter } from 'next/navigation';
+import { useRecoilValue } from 'recoil';
+import { authState } from '@/lib/atoms';
 
 export default function PatientPortalPage() {
-
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { isAuthenticated, user, isInitialized } = useAuth();
   const router = useRouter();
+  const { isAuthenticated, user, isLoading } = useRecoilValue(authState);
 
-  // Only redirect after auth state is initialized
+  // Guard: Redirect to signin when unauthenticated once loading completes
   useEffect(() => {
-    if (!isInitialized) return;
+    if (isLoading) return;
     if (!isAuthenticated) {
-      router.push('/auth/signin');
+      router.replace('/auth/signin');
     }
-  }, [isAuthenticated, isInitialized, router]);
+  }, [isAuthenticated, isLoading, router]);
 
-  if (!isInitialized) {
-    return null;
-  }
-
-  if (!user) return null;
+  if (isLoading) return null;
+  if (!isAuthenticated || !user) return null;
 
   const currentUser = {
     id: user.id,
@@ -272,7 +268,7 @@ export default function PatientPortalPage() {
                       <p className="text-sm text-gray-600">{doctor?.specialization}</p>
                       <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
                         <span>{appointment.date} at {appointment.time}</span>
-                        <span className="capitalize">{appointment.type.replace('-', ' ')}</span>
+                        <span className="capitalize">{(appointment.type ?? '').replace('-', ' ')}</span>
                       </div>
                     </div>
                   </div>

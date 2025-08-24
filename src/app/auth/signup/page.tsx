@@ -8,8 +8,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, ArrowRight, Check, Loader2, ArrowLeft, Stethoscope, UserRound } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider-simple';
 import { authAPI } from '@/lib/api-services';
+import { useRouter } from 'next/navigation';
 
 // Aligning frontend form with backend UserRegistrationDto
 // Backend DTO fields:
@@ -53,6 +53,7 @@ type RegistrationDto = {
 type SignUpStep = 'email' | 'otp' | 'details' | 'success';
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<SignUpStep>('email');
   const [formData, setFormData] = useState<SignUpFormData>({
     email: '',
@@ -73,7 +74,7 @@ export default function SignUpPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  // Auth is managed globally; after success redirect to signin
 
   // Sanitize and enforce 10-digit local phone number (backend column length=10)
   const handlePhoneChange = (value: string) => {
@@ -185,19 +186,8 @@ export default function SignUpPage() {
       // Mock Google OAuth signup
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const mockResponse = {
-        success: true,
-        user: {
-          id: '1',
-          email: 'newuser@example.com',
-          name: 'New User',
-          role: 'patient' as const,
-          contactNumber: '+1234567890'
-        },
-        token: 'mock-jwt-token'
-      };
-      
-      login(mockResponse);
+  // On demo flow, redirect user to signin to login with their new account
+  router.push('/auth/signin');
     } catch {
       setError('Failed to sign up with Google. Please try again.');
     } finally {
@@ -731,3 +721,6 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+// removed obsolete login stub
+

@@ -1,72 +1,65 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
 import { Calendar, Shield, Users, CheckCircle, Star, Clock } from 'lucide-react';
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/providers/AuthProvider-simple';
-
 export default function HomePage() {
-  const { isAuthenticated, isInitialized } = useAuth();
-  const router = useRouter();
-
-  // Remove redirect to /auth/signin from landing page
-  if (!isInitialized) {
-    return null;
-  }
-
-  const features = [
+  const features: { icon: React.ElementType; title: string; description: string }[] = [
     {
       icon: Calendar,
       title: 'Streamlined Scheduling',
-      description: 'Book appointments with healthcare professionals efficiently and manage your healthcare schedule.',
+      description:
+        'Book appointments with healthcare professionals efficiently and manage your healthcare schedule.',
     },
     {
       icon: Shield,
       title: 'Secure & Compliant',
-      description: 'HIPAA-compliant platform ensuring your medical information remains private and secure.',
+      description:
+        'HIPAA-compliant platform ensuring your medical information remains private and secure.',
     },
     {
       icon: Users,
       title: 'Expert Network',
-      description: 'Access to board-certified physicians and specialists across multiple medical disciplines.',
+      description:
+        'Access to board-certified physicians and specialists across multiple medical disciplines.',
     },
     {
       icon: Clock,
       title: '24/7 Support',
-      description: 'Round-the-clock patient support and emergency consultation services available.',
-    }
+      description:
+        'Round-the-clock patient support and emergency consultation services available.',
+    },
   ];
 
   const stats = [
     { number: '500+', label: 'Medical Professionals' },
     { number: '50,000+', label: 'Patient Appointments' },
     { number: '25+', label: 'Medical Specialties' },
-    { number: '99.8%', label: 'Satisfaction Rate' }
+    { number: '99.8%', label: 'Satisfaction Rate' },
   ];
 
-  const testimonials = [
+  const testimonials: { name: string; role: string; comment: string; rating: number }[] = [
     {
       name: 'Dr. Sarah Johnson',
       role: 'Chief Medical Officer',
-      comment: 'The platform has streamlined our appointment management and improved patient satisfaction significantly.',
-      rating: 5
+      comment:
+        'The platform has streamlined our appointment management and improved patient satisfaction significantly.',
+      rating: 5,
     },
     {
       name: 'Michael Chen',
       role: 'Patient',
-      comment: 'Professional interface and efficient booking process. The best healthcare platform I\'ve used.',
-      rating: 5
+      comment:
+        'Booking an appointment took less than a minute and I found a great specialist near me.',
+      rating: 5,
     },
     {
-      name: 'Dr. Robert Williams',
-      role: 'Cardiologist',
-      comment: 'Excellent system for managing patient appointments and maintaining professional communication.',
-      rating: 5
-    }
+      name: 'Aisha Khan',
+      role: 'Practice Manager',
+      comment:
+        'Our team relies on this system daily. It’s reliable, secure, and easy for patients and staff.',
+      rating: 5,
+    },
   ];
 
   return (
