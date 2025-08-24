@@ -10,13 +10,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Stethoscope, Heart, Shield } from 'lucide-react';
 import { authAPI } from '@/lib/api-services';
-import { useSetRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { authState as recoilAuthState } from '@/lib/atoms';
 import { useRouter } from 'next/navigation';
 
 
 export default function SignInPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,40 +24,16 @@ export default function SignInPage() {
   const setRecoilAuth = useSetRecoilState(recoilAuthState);
   const router = useRouter();
 
-  // Only check /user/loadOnRefresh once per mount
-  const hasCheckedRef = React.useRef(false);
+  // Rely on global AuthProvider to perform loadOnRefresh once; redirect when authenticated
+  const { isAuthenticated, isLoading: isAuthLoading } = useRecoilValue(recoilAuthState);
   useEffect(() => {
-    if (hasCheckedRef.current) return;
-    hasCheckedRef.current = true;
-    const checkAuth = async () => {
-      try {
-        const response = await authAPI.loadOnRefresh();
-        if (response && response.id && response.username) {
-          const user = {
-            id: response.id,
-            email: response.email,
-            name: response.fullName,
-            username: response.username,
-            role: 'patient' as const,
-          };
-          setRecoilAuth({
-            isAuthenticated: true,
-            user,
-            token: null,
-            isLoading: false,
-          });
-          router.replace('/portal');
-        }
-      } catch {
-        // Not authenticated, stay on signin page
-      }
-    };
-    checkAuth();
-  }, [setRecoilAuth, router]);
+    if (isAuthLoading) return;
+    if (isAuthenticated) router.replace('/'); // show landing page when authenticated
+  }, [isAuthenticated, isAuthLoading, router]);
 
   const handleGoogleSignIn = async () => {
     setError('');
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       // Mock Google OAuth flow - in production this would use real OAuth
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -77,11 +53,11 @@ export default function SignInPage() {
         token: 'mock-jwt-token',
         isLoading: false,
       });
-      router.push('/');
+  router.push('/');
     } catch {
       setError('Failed to sign in with Google. Please try again.');
     } finally {
-      setIsLoading(false);
+  setIsSubmitting(false);
     }
   };
 
@@ -97,7 +73,7 @@ export default function SignInPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    setIsLoading(true);
+  setIsSubmitting(true);
     try {
       const response = await authAPI.signin(username, password);
       const user = {
@@ -115,11 +91,11 @@ export default function SignInPage() {
         token: response.token || null,
         isLoading: false,
       });
-      router.push('/');
+    router.push('/');
   } catch {
       setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
-      setIsLoading(false);
+    setIsSubmitting(false);
     }
   };
 
@@ -202,10 +178,10 @@ export default function SignInPage() {
                 {/* Google OAuth Button */}
                 <button
                   onClick={handleGoogleSignIn}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Signing in...
@@ -280,10 +256,10 @@ export default function SignInPage() {
                   
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
                   >
-                    {isLoading ? (
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Signing in...

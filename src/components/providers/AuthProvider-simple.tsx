@@ -5,6 +5,12 @@ import { useSetRecoilState } from "recoil";
 import { authState as recoilAuthState } from "@/lib/atoms";
 import { authAPI } from "@/lib/api-services";
 
+declare global {
+  interface Window {
+    __HOSPILINK_AUTH__?: { isAuthenticated: boolean };
+  }
+}
+
 export default function RecoilAuthProvider({ children }: { children: React.ReactNode }) {
   const setRecoilAuth = useSetRecoilState(recoilAuthState);
   const MAX_WAIT_MS = Number(process.env.NEXT_PUBLIC_AUTH_MAX_WAIT_MS || 120000); // default 2 minutes
@@ -39,10 +45,22 @@ export default function RecoilAuthProvider({ children }: { children: React.React
               token: null,
               isLoading: false,
             });
+            if (typeof window !== 'undefined') {
+              try {
+                window.__HOSPILINK_AUTH__ = { isAuthenticated: true };
+                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: true } }));
+              } catch {}
+            }
             break;
           }
           // If no user fields despite 200, treat as unauth
           setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+          if (typeof window !== 'undefined') {
+            try {
+              window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
+              window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+            } catch {}
+          }
           break;
         } catch (err: unknown) {
           // If explicit 401 from backend, stop waiting and mark unauthenticated immediately
@@ -51,6 +69,12 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           if (status === 401) {
             if (didCancel) break;
             setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+            if (typeof window !== 'undefined') {
+              try {
+                window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
+                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+              } catch {}
+            }
             break;
           }
           // Retry on network/timeout/server errors until MAX_WAIT_MS
@@ -58,6 +82,12 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           if (elapsed >= maxWait) {
             if (didCancel) break;
             setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+            if (typeof window !== 'undefined') {
+              try {
+                window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
+                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+              } catch {}
+            }
             break;
           }
           // Backoff delay

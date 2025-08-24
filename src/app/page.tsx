@@ -4,6 +4,7 @@ import { Calendar, Shield, Users, CheckCircle, Star, Clock } from 'lucide-react'
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
 
 export default function HomePage() {
+  // Rendering is public by default; HomeGuard will redirect on client if unauthenticated
   const features: { icon: React.ElementType; title: string; description: string }[] = [
     {
       icon: Calendar,
@@ -63,7 +64,7 @@ export default function HomePage() {
   ];
 
   return (
-    <ConditionalLayout>
+  <ConditionalLayout>
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
   <section className="bg-white">

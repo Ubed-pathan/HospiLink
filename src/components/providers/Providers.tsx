@@ -9,6 +9,7 @@ import React from 'react';
 import { RecoilRoot } from 'recoil';
 import AuthProvider from './AuthProvider-simple';
 import { ThemeProvider } from './ThemeProvider';
+import RouteGuard from './RouteGuard';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export default function Providers({ children }: ProvidersProps) {
     <RecoilRoot>
       <ThemeProvider>
         <AuthProvider>
+          <RouteGuard />
           {children}
         </AuthProvider>
       </ThemeProvider>
