@@ -21,19 +21,19 @@ export default function NavHeader() {
   ];
 
   return (
-    <nav className="bg-white fixed w-full top-0 z-50">
+    <nav className="bg-white/60 backdrop-blur-md fixed w-full top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-6 h-6 text-white" />
+          <Link href="/" className="flex items-center gap-2 md:gap-3 min-w-0">
+            <div className="w-9 h-9 md:w-10 md:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Stethoscope className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">HospiLink</span>
+            <span className="text-xl md:text-2xl font-bold text-gray-900 truncate max-w-[45vw] md:max-w-none">HospiLink</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -46,12 +46,12 @@ export default function NavHeader() {
           </div>
 
           {/* Tablet Navigation - Compact */}
-          <div className="hidden md:flex lg:hidden items-center space-x-4">
+      <div className="hidden md:flex lg:hidden items-center space-x-3">
             {navItems.slice(0, 3).map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-600 hover:text-blue-600 font-medium transition-colors text-sm"
+        className="text-gray-600 hover:text-blue-600 font-medium transition-colors text-sm"
               >
                 {item.name}
               </Link>
@@ -88,6 +88,8 @@ export default function NavHeader() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
+            aria-label="Toggle menu"
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -95,28 +97,28 @@ export default function NavHeader() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 bg-white">
+          <div className="lg:hidden py-3 bg-white border-t border-gray-200 shadow-sm">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="block px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors"
+                className="block px-4 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors text-sm"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            <div className="px-4 py-3 space-y-3">
+            <div className="px-4 py-3 space-y-2.5">
               <Link
                 href="/portal"
-                className="block w-full text-center border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition-colors"
+                className="block w-full text-center border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition-colors text-sm"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Patient Portal
               </Link>
               <Link
                 href="/appointment"
-                className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700 transition-colors"
+                className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700 transition-colors text-sm"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Book Appointment

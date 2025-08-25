@@ -8,22 +8,24 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Clock, User, FileText, CreditCard, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, User, FileText, CreditCard, CheckCircle, ArrowLeft } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
-import { Doctor, Department, AppointmentFormData } from '@/lib/types';
-import { mockDoctors, mockDepartments, getDoctorById, getDepartmentById } from '@/lib/mockData';
+import { AppointmentFormData } from '@/lib/types';
+import { mockDoctors, getDoctorById, getDepartmentById, mockAppointments } from '@/lib/mockData';
 
 type BookingStep = 'doctor-selection' | 'date-time' | 'details' | 'payment' | 'confirmation';
 
 export default function AppointmentPage() {
   const searchParams = useSearchParams();
+  // Local ISO date for today (YYYY-MM-DD) in user's locale
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const [currentStep, setCurrentStep] = useState<BookingStep>('doctor-selection');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [formData, setFormData] = useState<AppointmentFormData>({
     doctorId: '',
     departmentId: '',
-    date: '',
+    date: todayStr,
     time: '',
     type: 'consultation',
     symptoms: '',
@@ -40,7 +42,7 @@ export default function AppointmentPage() {
         setFormData(prev => ({
           ...prev,
           doctorId: doctorId,
-          departmentId: doctor.departmentId
+          departmentId: doctor.departmentId ?? ''
         }));
         setCurrentStep('date-time');
       }
@@ -48,7 +50,7 @@ export default function AppointmentPage() {
   }, [searchParams]);
 
   const selectedDoctor = getDoctorById(selectedDoctorId);
-  const selectedDepartment = selectedDoctor ? getDepartmentById(selectedDoctor.departmentId) : null;
+  const selectedDepartment = selectedDoctor ? getDepartmentById(selectedDoctor.departmentId ?? '') : null;
 
   const handleDoctorSelect = (doctorId: string) => {
     const doctor = getDoctorById(doctorId);
@@ -57,22 +59,60 @@ export default function AppointmentPage() {
       setFormData(prev => ({
         ...prev,
         doctorId: doctorId,
-        departmentId: doctor.departmentId
+        departmentId: doctor.departmentId ?? '',
+        // Restrict to today only
+        date: todayStr,
       }));
       setCurrentStep('date-time');
     }
   };
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour <= 17; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(time);
-      }
+  // Helpers for time calculations
+  const toMinutes = (hhmm: string): number => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const toHHMM = (mins: number): string => {
+    const h = Math.floor(mins / 60).toString().padStart(2, '0');
+    const m = (mins % 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  // Generate 15-min slots from 10:30 to 17:30, excluding break 14:30–15:00
+  const generateScheduledSlots = React.useCallback((): string[] => {
+    const START = '10:30';
+    const END = '17:30';
+    const BREAK_START = '14:30';
+    const BREAK_END = '15:00';
+    const STEP = 15;
+
+    const startM = toMinutes(START);
+    const endM = toMinutes(END);
+    const breakStartM = toMinutes(BREAK_START);
+    const breakEndM = toMinutes(BREAK_END);
+
+    const slots: string[] = [];
+    for (let t = startM; t < endM; t += STEP) {
+      // Skip times within the break window [breakStart, breakEnd)
+      if (t >= breakStartM && t < breakEndM) continue;
+      slots.push(toHHMM(t));
     }
     return slots;
-  };
+  }, []);
+
+  // Build today's slots, filter to future times, and mark booked ones
+  const todaysSlots = React.useMemo(() => {
+    // Show the full schedule for today regardless of current time
+    return generateScheduledSlots();
+  }, [generateScheduledSlots]);
+
+  const bookedTimesToday = React.useMemo(() => {
+    if (!selectedDoctorId) return new Set<string>();
+    const booked = mockAppointments
+      .filter((a) => a.doctorId === selectedDoctorId && a.date === todayStr && !!a.time)
+      .map((a) => a.time as string);
+    return new Set(booked);
+  }, [selectedDoctorId, todayStr]);
 
   const renderDoctorSelection = () => (
     <div className="space-y-6 md:space-y-8">
@@ -83,49 +123,49 @@ export default function AppointmentPage() {
         <p className="text-base md:text-lg text-gray-600">Choose from our experienced healthcare professionals</p>
       </div>
       
-      <div className="grid gap-4 md:gap-6">
+      <div className="grid gap-3 sm:gap-4 md:gap-6">
         {mockDoctors.map(doctor => {
-          const department = getDepartmentById(doctor.departmentId);
+          const department = getDepartmentById(doctor.departmentId ?? '');
           return (
             <div
               key={doctor.id}
               onClick={() => handleDoctorSelect(doctor.id)}
-              className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
+              className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
             >
               <div className="flex flex-col sm:flex-row items-start gap-3 md:gap-4">
                 <div className="relative mx-auto sm:mx-0">
-                  <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-600 rounded-lg flex items-center justify-center text-white text-base md:text-lg font-semibold">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm sm:text-base md:text-lg font-semibold">
                     {doctor.name.split(' ').map((n: string) => n[0]).join('')}
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 
                 <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1">
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-1">
                     Dr. {doctor.name}
                   </h3>
                   <p className="text-blue-600 font-medium mb-2 text-sm md:text-base">
                     {doctor.specialization}
                   </p>
-                  <p className="text-gray-600 mb-3 text-sm md:text-base">
+                  <p className="text-gray-600 mb-2 sm:mb-3 text-xs sm:text-sm md:text-base">
                     {department?.name} • {doctor.location}
                   </p>
                   
-                  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
                     <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">★</span>
-                      <span className="font-medium text-gray-900 text-sm md:text-base">{doctor.rating}</span>
-                      <span className="text-xs md:text-sm text-gray-500">({doctor.reviewCount} reviews)</span>
+                      <span className="text-yellow-400 text-sm">★</span>
+                      <span className="font-medium text-gray-900 text-xs sm:text-sm md:text-base">{doctor.rating}</span>
+                      <span className="text-[11px] sm:text-xs md:text-sm text-gray-500">({doctor.reviewCount} reviews)</span>
                     </div>
                     
-                    <div className="text-green-600 font-semibold text-sm md:text-base">
+                    <div className="text-green-600 font-semibold text-xs sm:text-sm md:text-base">
                       ${doctor.consultationFee} consultation
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 text-blue-600 mx-auto sm:mx-0">
-                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 transform rotate-180" />
+                <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 mx-auto sm:mx-0">
+                  <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 transform rotate-180" />
                 </div>
               </div>
             </div>
@@ -150,50 +190,95 @@ export default function AppointmentPage() {
       {selectedDoctor && (
         <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
           <h3 className="font-semibold text-gray-900 text-sm md:text-base">Selected Doctor</h3>
-          <p className="text-sm md:text-base">Dr. {selectedDoctor.name} - {selectedDoctor.specialization}</p>
+          <p className="text-sm md:text-base text-gray-900">Dr. {selectedDoctor.name} - {selectedDoctor.specialization}</p>
           <p className="text-xs md:text-sm text-gray-600">{selectedDepartment?.name}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs md:text-sm font-medium text-gray-800 mb-1 md:mb-2">
             Appointment Date
           </label>
           <input
             type="date"
             value={formData.date}
             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+            min={todayStr}
+            max={todayStr}
+            className="w-full px-2 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900 placeholder:text-gray-400"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs md:text-sm font-medium text-gray-800 mb-1 md:mb-2">
             Appointment Time
           </label>
-          <select
-            value={formData.time}
-            onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-            className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
-          >
-            <option value="">Select time</option>
-            {generateTimeSlots().map(time => (
-              <option key={time} value={time}>{time}</option>
-            ))}
-          </select>
+          {todaysSlots.length === 0 ? (
+            <p className="text-sm text-gray-500">No time slots configured for today.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {todaysSlots.map((time) => {
+                const nowHM = new Date().toTimeString().slice(0, 5);
+                const isBooked = bookedTimesToday.has(time);
+                const isPast = time < nowHM;
+                const isSelected = formData.time === time && !isBooked && !isPast;
+                const base = 'px-2 py-1.5 rounded-md text-xs sm:text-sm border transition-colors text-center';
+                const classes = isBooked
+                  ? 'bg-blue-100 text-blue-700 border-blue-300 cursor-not-allowed'
+                  : isPast
+                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
+                return (
+                  <button
+                    type="button"
+                    key={time}
+                    disabled={isBooked || isPast}
+                    className={`${base} ${classes}`}
+                    onClick={() => setFormData((prev) => ({ ...prev, time }))}
+                    aria-pressed={isSelected}
+                    aria-label={`Time ${time}${isBooked ? ' (Booked)' : ''}`}
+                  >
+                    {time}
+                    {isBooked && <span className="sr-only"> Booked</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {todaysSlots.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-300" />
+                <span className="text-gray-600">Booked</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-200" />
+                <span className="text-gray-600">Past</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-blue-600" />
+                <span className="text-gray-600">Selected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-white border border-gray-300" />
+                <span className="text-gray-600">Available</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-800 mb-2">
           Appointment Type
         </label>
         <select
           value={formData.type}
           onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-          className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+          className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900"
         >
           <option value="consultation">Consultation</option>
           <option value="follow-up">Follow-up</option>
@@ -337,8 +422,8 @@ export default function AppointmentPage() {
 
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
-      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-        <CheckCircle className="w-10 h-10 text-white" />
+      <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+        <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
       </div>
       
       <h2 className="text-3xl font-bold text-gray-900">Appointment Confirmed!</h2>
@@ -360,13 +445,13 @@ export default function AppointmentPage() {
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link
           href="/portal"
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
           Go to Patient Portal
         </Link>
         <Link
           href="/appointment"
-          className="border-2 border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
+          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
         >
           Book Another Appointment
         </Link>
@@ -375,21 +460,21 @@ export default function AppointmentPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <NavHeader />
       
-      {/* Header */}
-      <section className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-16">
+  {/* Header */}
+      <section className="bg-white shadow-sm pt-16">
+        <div className="container mx-auto px-4 py-10 md:py-16">
           <div className="text-center">
-            <div className="inline-flex items-center gap-3 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg mb-6">
-              <Calendar className="w-5 h-5" />
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg mb-4 md:mb-6 text-sm md:text-base">
+              <Calendar className="w-4 h-4 md:w-5 md:h-5" />
               <span className="font-medium">Book Your Appointment</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 md:mb-4">
               Schedule Your Visit
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Connect with our expert doctors and take the first step towards better health
             </p>
           </div>
@@ -397,10 +482,11 @@ export default function AppointmentPage() {
       </section>
 
       {/* Progress Steps */}
-      <section className="py-8 border-b">
+  <section className="py-6 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between">
+            <div className="overflow-x-auto overscroll-x-contain">
+              <div className="flex items-center gap-3 md:gap-6 flex-nowrap min-w-max pr-2">
               {[
                 { key: 'doctor-selection', label: 'Select Doctor', icon: User },
                 { key: 'date-time', label: 'Date & Time', icon: Calendar },
@@ -414,38 +500,40 @@ export default function AppointmentPage() {
                 return (
                   <div key={step.key} className="flex items-center">
                     <div className="flex flex-col items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-medium transition-colors ${
+                      <div className={`w-9 h-9 md:w-12 md:h-12 rounded-full flex items-center justify-center font-medium transition-colors ${
                         isCompleted 
                           ? 'bg-green-500 text-white' 
                           : isActive 
                             ? 'bg-blue-600 text-white' 
                             : 'bg-gray-200 text-gray-500'
                       }`}>
-                        <step.icon className="w-5 h-5" />
+                        <step.icon className="w-4 h-4 md:w-5 md:h-5" />
                       </div>
-                      <span className={`mt-2 text-sm font-medium ${
+                      <span className={`hidden md:block mt-2 text-sm font-medium ${
                         isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
                       }`}>
                         {step.label}
                       </span>
+                      <span className="sr-only">{step.label}</span>
                     </div>
                     {index < 4 && (
-                      <div className={`w-12 h-0.5 mx-4 ${
+                      <div className={`w-6 md:w-12 h-0.5 mx-1.5 md:mx-4 ${
                         isCompleted ? 'bg-green-500' : 'bg-gray-200'
                       }`} />
                     )}
                   </div>
                 );
               })}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="py-16">
+    <section className="py-10 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border p-4 sm:p-6 md:p-8">
             {currentStep === 'doctor-selection' && renderDoctorSelection()}
             {currentStep === 'date-time' && renderDateTimeSelection()}
             {currentStep === 'details' && renderDetailsForm()}
