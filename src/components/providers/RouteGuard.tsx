@@ -18,7 +18,7 @@ export default function RouteGuard() {
     const maybeRedirect = (isAuthenticated: boolean | undefined) => {
       if (handledRef.current) return;
       if (typeof isAuthenticated === 'undefined') return;
-      if (pathname?.startsWith('/portal') && !isAuthenticated) {
+      if (pathname === '/' && !isAuthenticated) {
         handledRef.current = true;
         router.replace('/auth/signin');
       }
