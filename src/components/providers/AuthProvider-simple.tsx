@@ -7,7 +7,16 @@ import { authAPI } from "@/lib/api-services";
 
 declare global {
   interface Window {
-    __HOSPILINK_AUTH__?: { isAuthenticated: boolean };
+    __HOSPILINK_AUTH__?: {
+      isAuthenticated: boolean;
+      user?: {
+        id: string;
+        email: string;
+        name: string;
+        username?: string;
+        role?: 'patient' | 'admin';
+      } | null;
+    };
   }
 }
 
@@ -47,8 +56,8 @@ export default function RecoilAuthProvider({ children }: { children: React.React
             });
             if (typeof window !== 'undefined') {
               try {
-                window.__HOSPILINK_AUTH__ = { isAuthenticated: true };
-                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: true } }));
+                window.__HOSPILINK_AUTH__ = { isAuthenticated: true, user };
+                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: true, user } }));
               } catch {}
             }
             break;
@@ -57,8 +66,8 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
           if (typeof window !== 'undefined') {
             try {
-              window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
-              window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+              window.__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null };
+              window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
             } catch {}
           }
           break;
@@ -68,11 +77,11 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           const status = e?.status ?? e?.response?.status;
           if (status === 401) {
             if (didCancel) break;
-            setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+      setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
             if (typeof window !== 'undefined') {
               try {
-                window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
-                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+        window.__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null };
+        window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
               } catch {}
             }
             break;
@@ -81,11 +90,11 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           const elapsed = Date.now() - start;
           if (elapsed >= maxWait) {
             if (didCancel) break;
-            setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
+      setRecoilAuth({ isAuthenticated: false, user: null, token: null, isLoading: false });
             if (typeof window !== 'undefined') {
               try {
-                window.__HOSPILINK_AUTH__ = { isAuthenticated: false };
-                window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false } }));
+        window.__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null };
+        window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
               } catch {}
             }
             break;

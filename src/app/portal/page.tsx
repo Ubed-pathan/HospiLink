@@ -24,23 +24,57 @@ import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
 
 import { useRouter } from 'next/navigation';
-import { useRecoilValue } from 'recoil';
-import { authState } from '@/lib/atoms';
+
+declare global {
+  interface Window {
+    __HOSPILINK_AUTH__?: {
+      isAuthenticated: boolean;
+      user?: {
+        id: string;
+        email: string;
+        name: string;
+        username?: string;
+        role?: 'patient' | 'admin';
+      } | null;
+    };
+  }
+}
 
 export default function PatientPortalPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
-  const { isAuthenticated, user, isLoading } = useRecoilValue(authState);
+  const [authResolved, setAuthResolved] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
 
   // Guard: Redirect to signin when unauthenticated once loading completes
   useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/auth/signin');
+    const existing = window.__HOSPILINK_AUTH__;
+    if (existing) {
+      setIsAuthenticated(!!existing.isAuthenticated);
+      setUser(existing.user ? { id: existing.user.id, name: existing.user.name, email: existing.user.email } : null);
+      setAuthResolved(true);
     }
-  }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) return null;
+    const onReady = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { id: string; name: string; email: string } | null } | undefined;
+      if (!detail) return;
+      setIsAuthenticated(!!detail.isAuthenticated);
+      setUser(detail.user ? { id: detail.user.id, name: detail.user.name, email: detail.user.email } : null);
+      setAuthResolved(true);
+    };
+    if (!existing) {
+      window.addEventListener('hospilink-auth-ready', onReady, { once: true });
+    }
+    return () => window.removeEventListener('hospilink-auth-ready', onReady);
+  }, []);
+
+  useEffect(() => {
+    if (!authResolved) return;
+    if (!isAuthenticated) router.replace('/auth/signin');
+  }, [authResolved, isAuthenticated, router]);
+
+  if (!authResolved) return null;
   if (!isAuthenticated || !user) return null;
 
   const currentUser = {
@@ -337,7 +371,7 @@ export default function PatientPortalPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16 md:pt-20">
       <NavHeader />
       
       {/* Header */}

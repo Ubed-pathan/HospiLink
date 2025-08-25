@@ -10,9 +10,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Stethoscope, Heart, Shield } from 'lucide-react';
 import { authAPI } from '@/lib/api-services';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { authState as recoilAuthState } from '@/lib/atoms';
 import { useRouter } from 'next/navigation';
+
+declare global {
+  interface Window {
+    __HOSPILINK_AUTH__?: { isAuthenticated: boolean };
+  }
+}
 
 
 export default function SignInPage() {
@@ -20,16 +24,20 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  // No useAuth, use Recoil only
-  const setRecoilAuth = useSetRecoilState(recoilAuthState);
   const router = useRouter();
 
-  // Rely on global AuthProvider to perform loadOnRefresh once; redirect when authenticated
-  const { isAuthenticated, isLoading: isAuthLoading } = useRecoilValue(recoilAuthState);
+  // Rely on AuthProvider broadcast to redirect if already authenticated
   useEffect(() => {
-    if (isAuthLoading) return;
-    if (isAuthenticated) router.replace('/'); // show landing page when authenticated
-  }, [isAuthenticated, isAuthLoading, router]);
+    const initial = window.__HOSPILINK_AUTH__?.isAuthenticated;
+    if (initial) router.replace('/');
+
+    const onReady = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean } | undefined;
+      if (detail?.isAuthenticated) router.replace('/');
+    };
+    window.addEventListener('hospilink-auth-ready', onReady, { once: true });
+    return () => window.removeEventListener('hospilink-auth-ready', onReady);
+  }, [router]);
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -38,21 +46,6 @@ export default function SignInPage() {
       // Mock Google OAuth flow - in production this would use real OAuth
       await new Promise(resolve => setTimeout(resolve, 2000));
       // Mock successful response
-      const user = {
-        id: '1',
-        email: 'user@example.com',
-        name: 'John Doe',
-        username: 'johndoe',
-        role: 'patient' as const,
-        contactNumber: '+1234567890',
-        profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-      };
-      setRecoilAuth({
-        isAuthenticated: true,
-        user,
-        token: 'mock-jwt-token',
-        isLoading: false,
-      });
   router.push('/');
     } catch {
       setError('Failed to sign in with Google. Please try again.');
@@ -75,23 +68,9 @@ export default function SignInPage() {
     }
   setIsSubmitting(true);
     try {
-      const response = await authAPI.signin(username, password);
-      const user = {
-        id: response.id,
-        email: response.email,
-        name: response.fullName,
-        username: response.username,
-        role: response.role || 'patient',
-        contactNumber: response.contactNumber,
-        profileImage: response.profileImage,
-      };
-      setRecoilAuth({
-        isAuthenticated: true,
-        user,
-        token: response.token || null,
-        isLoading: false,
-      });
-    router.push('/');
+      await authAPI.signin(username, password);
+  // Cookies/session set by backend (withCredentials). Let AuthProvider set Recoil on next paint.
+  router.push('/');
   } catch {
       setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {

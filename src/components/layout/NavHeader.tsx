@@ -9,11 +9,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Stethoscope, Menu, X } from 'lucide-react';
 
-interface NavHeaderProps {
-  variant?: 'light' | 'dark';
-}
-
-export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
+export default function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const navItems = [
@@ -25,7 +21,7 @@ export default function NavHeader({ variant = 'dark' }: NavHeaderProps) {
   ];
 
   return (
-    <nav className="bg-white/70 backdrop-blur-md shadow-sm border-b border-gray-200 fixed w-full top-0 z-50">
+    <nav className="bg-white fixed w-full top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
