@@ -21,7 +21,7 @@ export default function NavHeader() {
   ];
 
   return (
-    <nav className="bg-white/60 backdrop-blur-md fixed w-full top-0 z-50">
+    <nav className="bg-white/60 backdrop-blur-md fixed top-0 left-0 right-0 z-50 transform-gpu will-change-transform">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}

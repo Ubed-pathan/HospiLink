@@ -55,18 +55,17 @@ export const authAPI = {
     try {
       const response = await api.get('/user/loadOnRefresh');
       if (response.status !== 200) {
-        const error = new Error('Not authenticated');
-        // @ts-ignore
+        const error = new Error('Not authenticated') as Error & { status?: number };
         error.status = response.status;
         throw error;
       }
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If error is axios error, check for response status
-      if (err.response && err.response.status !== 200) {
-        const error = new Error('Not authenticated');
-        // @ts-ignore
-        error.status = err.response.status;
+      const maybeAxios = err as { response?: { status?: number } };
+      if (maybeAxios?.response && maybeAxios.response.status !== 200) {
+        const error = new Error('Not authenticated') as Error & { status?: number };
+        error.status = maybeAxios.response.status;
         throw error;
       }
       throw err;
@@ -100,10 +99,68 @@ export const userAPI = {
 
 // Doctor APIs
 export const doctorAPI = {
-  // Get all doctors
+  // Get all doctors (mapped from backend DTO to our Doctor type)
   getAllDoctors: async (): Promise<Doctor[]> => {
-    const response = await api.get('/doctors');
-    return response.data;
+    type BackendDoctor = {
+      id: string;
+      firstName: string;
+      middleName?: string;
+      lastName: string;
+      username?: string;
+      email?: string;
+      phoneNumber?: string;
+      gender?: string;
+      specialization?: string; // e.g., "Cardiology" or "Cardiologist"
+      experienceYears?: number;
+      qualification?: string; // comma-separated or single string
+      licenseNumber?: string;
+      hospitalName?: string;
+      hospitalAddress?: string;
+      availableTimeFrom?: string; // HH:mm
+      availableTimeTo?: string;   // HH:mm
+      city?: string;
+      state?: string;
+      country?: string;
+      zipCode?: string;
+      rating?: number;
+      reviewCount?: number;
+      isPresent?: boolean;
+      createdAt?: string;
+      lastModified?: string;
+    };
+
+    const response = await api.get<BackendDoctor[]>('/doctor/getAlldoctors');
+
+    const toSlots = (from?: string, to?: string): string[] | undefined => {
+      if (!from || !to) return undefined;
+      // Provide two representative times so UI can show "Available: f, t"
+      return [from, to];
+    };
+
+    const doctors: Doctor[] = (response.data || []).map((d) => {
+      const name = [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      const qualification = d.qualification
+        ? d.qualification.split(',').map((q) => q.trim()).filter(Boolean)
+        : undefined;
+      return {
+        id: d.id,
+        name: name || d.username || 'Doctor',
+        email: d.email,
+        phone: d.phoneNumber,
+        specialization: d.specialization,
+        experience: d.experienceYears ?? 0,
+        qualification,
+        rating: typeof d.rating === 'number' ? d.rating : 0,
+        reviewCount: d.reviewCount ?? 0,
+        location: d.hospitalName || d.city,
+        availableSlots: toSlots(d.availableTimeFrom, d.availableTimeTo),
+        isAvailable: d.isPresent,
+        createdAt: d.createdAt,
+        updatedAt: d.lastModified,
+      } as Doctor;
+    });
+
+    return doctors;
   },
 
   // Get doctor by ID

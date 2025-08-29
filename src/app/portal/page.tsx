@@ -25,20 +25,6 @@ import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockDa
 
 import { useRouter } from 'next/navigation';
 
-declare global {
-  interface Window {
-    __HOSPILINK_AUTH__?: {
-      isAuthenticated: boolean;
-      user?: {
-        id: string;
-        email: string;
-        name: string;
-        username?: string;
-        role?: 'patient' | 'admin';
-      } | null;
-    };
-  }
-}
 
 export default function PatientPortalPage() {
   const [activeTab, setActiveTab] = useState('dashboard');

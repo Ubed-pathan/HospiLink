@@ -3,12 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-declare global {
-  interface Window {
-    __HOSPILINK_AUTH__?: { isAuthenticated: boolean };
-  }
-}
-
 export default function RouteGuard() {
   const pathname = usePathname();
   const router = useRouter();

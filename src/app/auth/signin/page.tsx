@@ -12,12 +12,6 @@ import { Loader2, ArrowRight, Stethoscope, Heart, Shield } from 'lucide-react';
 import { authAPI } from '@/lib/api-services';
 import { useRouter } from 'next/navigation';
 
-declare global {
-  interface Window {
-    __HOSPILINK_AUTH__?: { isAuthenticated: boolean };
-  }
-}
-
 
 export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);

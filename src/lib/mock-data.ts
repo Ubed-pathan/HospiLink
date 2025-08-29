@@ -79,297 +79,108 @@ export const mockDoctors: Doctor[] = [
     name: 'Dr. Sarah Johnson',
     specialty: 'Cardiology',
     email: 'sarah.johnson@hospilink.com',
-    contactNumber: '+1234567892',
+  phone: '+1234567892',
     experience: 15,
     rating: 4.8,
-    totalReviews: 245,
+  reviewCount: 245,
     consultationFee: 150,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['09:00', '10:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['09:00', '10:00', '11:00', '14:00'],
-      },
-    ],
+  // availability omitted; schedule handled elsewhere
   },
   {
     id: '2',
     name: 'Dr. Michael Chen',
     specialty: 'Cardiology',
     email: 'michael.chen@hospilink.com',
-    contactNumber: '+1234567893',
+  phone: '+1234567893',
     experience: 12,
     rating: 4.7,
-    totalReviews: 189,
+  reviewCount: 189,
     consultationFee: 140,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['10:00', '11:00', '15:00', '16:00', '17:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['09:00', '10:00', '15:00', '16:00', '17:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['10:00', '11:00', '15:00', '16:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '3',
     name: 'Dr. Emily Rodriguez',
     specialty: 'Neurology',
     email: 'emily.rodriguez@hospilink.com',
-    contactNumber: '+1234567894',
+  phone: '+1234567894',
     experience: 18,
     rating: 4.9,
-    totalReviews: 312,
+  reviewCount: 312,
     consultationFee: 180,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['08:00', '09:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['08:00', '09:00', '10:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '4',
     name: 'Dr. James Wilson',
     specialty: 'Orthopedics',
     email: 'james.wilson@hospilink.com',
-    contactNumber: '+1234567895',
+  phone: '+1234567895',
     experience: 20,
     rating: 4.6,
-    totalReviews: 278,
+  reviewCount: 278,
     consultationFee: 160,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['09:00', '10:00', '15:00', '16:00', '17:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['09:00', '10:00', '11:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '5',
     name: 'Dr. Lisa Thompson',
     specialty: 'Orthopedics',
     email: 'lisa.thompson@hospilink.com',
-    contactNumber: '+1234567896',
+  phone: '+1234567896',
     experience: 14,
     rating: 4.7,
-    totalReviews: 156,
+  reviewCount: 156,
     consultationFee: 145,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['10:00', '11:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['10:00', '11:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['10:00', '11:00', '14:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '6',
     name: 'Dr. David Kim',
     specialty: 'Pediatrics',
     email: 'david.kim@hospilink.com',
-    contactNumber: '+1234567897',
+  phone: '+1234567897',
     experience: 16,
     rating: 4.8,
-    totalReviews: 203,
+  reviewCount: 203,
     consultationFee: 135,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['08:00', '09:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '7',
     name: 'Dr. Maria Garcia',
     specialty: 'Dermatology',
     email: 'maria.garcia@hospilink.com',
-    contactNumber: '+1234567898',
+  phone: '+1234567898',
     experience: 11,
     rating: 4.6,
-    totalReviews: 134,
+  reviewCount: 134,
     consultationFee: 130,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['09:00', '10:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['09:00', '10:00', '11:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '8',
     name: 'Dr. Robert Brown',
     specialty: 'General Medicine',
     email: 'robert.brown@hospilink.com',
-    contactNumber: '+1234567899',
+  phone: '+1234567899',
     experience: 22,
     rating: 4.5,
-    totalReviews: 298,
+  reviewCount: 298,
     consultationFee: 120,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['08:00', '09:00', '10:00', '14:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['08:00', '09:00', '10:00', '11:00', '14:00'],
-      },
-    ],
+  // availability omitted
   },
   {
     id: '9',
     name: 'Dr. Jennifer Lee',
     specialty: 'General Medicine',
     email: 'jennifer.lee@hospilink.com',
-    contactNumber: '+1234567800',
+  phone: '+1234567800',
     experience: 9,
     rating: 4.4,
-    totalReviews: 87,
+  reviewCount: 87,
     consultationFee: 110,
-    availability: [
-      {
-        day: 'Monday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Tuesday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00'],
-      },
-      {
-        day: 'Wednesday',
-        timeSlots: ['09:00', '10:00', '15:00', '16:00'],
-      },
-      {
-        day: 'Thursday',
-        timeSlots: ['09:00', '10:00', '11:00', '15:00'],
-      },
-      {
-        day: 'Friday',
-        timeSlots: ['09:00', '10:00', '11:00'],
-      },
-    ],
+  // availability omitted
   },
 ];
 
@@ -383,7 +194,7 @@ export const mockAppointments: Appointment[] = [
     date: '2024-12-20',
     timeSlot: '10:00',
     status: 'scheduled',
-    reason: 'Regular checkup',
+  notes: 'Regular checkup',
     createdAt: '2024-12-15T10:00:00Z',
     updatedAt: '2024-12-15T10:00:00Z',
   },
@@ -395,7 +206,6 @@ export const mockAppointments: Appointment[] = [
     date: '2024-12-18',
     timeSlot: '14:00',
     status: 'completed',
-    reason: 'Headache consultation',
     notes: 'Patient reported improvement after medication',
     createdAt: '2024-12-10T14:00:00Z',
     updatedAt: '2024-12-18T14:30:00Z',
@@ -408,7 +218,7 @@ export const mockAppointments: Appointment[] = [
     date: '2024-12-25',
     timeSlot: '15:00',
     status: 'scheduled',
-    reason: 'Knee pain evaluation',
+  notes: 'Knee pain evaluation',
     createdAt: '2024-12-16T09:00:00Z',
     updatedAt: '2024-12-16T09:00:00Z',
   },

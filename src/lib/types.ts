@@ -27,9 +27,9 @@ export interface Doctor {
   name: string;
   email?: string;
   phone?: string;
-  specialty: string;
+  specialty?: string;
   specialization?: string;
-  department: string;
+  department?: string;
   departmentId?: string;
   qualification?: string[];
   education?: string;

@@ -5,21 +5,6 @@ import { useSetRecoilState } from "recoil";
 import { authState as recoilAuthState } from "@/lib/atoms";
 import { authAPI } from "@/lib/api-services";
 
-declare global {
-  interface Window {
-    __HOSPILINK_AUTH__?: {
-      isAuthenticated: boolean;
-      user?: {
-        id: string;
-        email: string;
-        name: string;
-        username?: string;
-        role?: 'patient' | 'admin';
-      } | null;
-    };
-  }
-}
-
 export default function RecoilAuthProvider({ children }: { children: React.ReactNode }) {
   const setRecoilAuth = useSetRecoilState(recoilAuthState);
   const MAX_WAIT_MS = Number(process.env.NEXT_PUBLIC_AUTH_MAX_WAIT_MS || 120000); // default 2 minutes
