@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   description: "Professional hospital appointment booking system with modern UI and seamless user experience",
   keywords: ["hospital", "appointment", "booking", "healthcare", "medical"],
   authors: [{ name: "HospiLink Team" }],
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export const viewport = {

@@ -130,7 +130,7 @@ export const doctorAPI = {
     };
     
 
-    const response = await api.get<BackendDoctor[]>('/doctor/getAlldoctors');
+  const response = await api.get<BackendDoctor[]>('/doctor/getAllDoctors');
 
     const toSlots = (from?: string, to?: string): string[] | undefined => {
       if (!from || !to) return undefined;
