@@ -39,13 +39,13 @@ export default function PresenceToggle({ className = '', onChange }: PresenceTog
         className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border transition-colors ${
           isPresent
             ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
         }`}
         title={isPresent ? 'Present' : 'Absent'}
       >
         <span
           className={`inline-block w-2.5 h-2.5 rounded-full ${
-            isPresent ? 'bg-green-500' : 'bg-gray-400'
+            isPresent ? 'bg-green-500' : 'bg-red-500'
           }`}
         />
         <span className="text-xs font-medium">{isPresent ? 'Present' : 'Absent'}</span>
