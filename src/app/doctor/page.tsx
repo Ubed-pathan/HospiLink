@@ -3,10 +3,19 @@
 import React from 'react';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
+import Link from 'next/link';
 
 export default function DoctorHome() {
   return (
     <div className="space-y-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/doctor/appointments" className="px-3 py-2 rounded-md border bg-blue-600 text-white hover:bg-blue-700">View Appointments</Link>
+          <Link href="/doctor/schedule" className="px-3 py-2 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">Edit Schedule</Link>
+          <Link href="/doctor/patients" className="px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50">My Patients</Link>
+          <Link href="/doctor/settings" className="px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50">Profile & Settings</Link>
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[ 
           { label: 'Today Appointments', value: 14, trend: [8,10,12,11,14] },
@@ -28,7 +37,7 @@ export default function DoctorHome() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+  <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">Upcoming Appointments</h2>
           <span className="text-sm text-gray-500">Next 24 hours</span>
@@ -48,7 +57,8 @@ export default function DoctorHome() {
               <div className="text-sm text-gray-700">{a.reason}</div>
             </div>
           ))}
-        </div>
+  </div>
+  <div className="mt-3 text-xs text-gray-500">Tip: Keep your availability updated in the Schedule tab so patients can book you.</div>
       </div>
     </div>
   );
