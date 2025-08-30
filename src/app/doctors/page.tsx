@@ -98,6 +98,21 @@ export default function DoctorsPage() {
             <p className="text-gray-600 mb-3 md:mb-4 text-sm md:text-base">
               {department?.name}
             </p>
+            {doctor.qualification && doctor.qualification.length > 0 && (
+              <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 md:gap-2 mb-3 md:mb-4">
+                {doctor.qualification.slice(0, 3).map((q) => (
+                  <span
+                    key={q}
+                    className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-full bg-gray-50 text-gray-700 text-xs md:text-xs font-medium border border-gray-200"
+                  >
+                    {q}
+                  </span>
+                ))}
+                {doctor.qualification.length > 3 && (
+                  <span className="text-xs md:text-xs text-gray-500">+{doctor.qualification.length - 3} more</span>
+                )}
+              </div>
+            )}
             
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-gray-600 mb-3 md:mb-4">
               <div className="flex items-center gap-2">
@@ -113,6 +128,10 @@ export default function DoctorsPage() {
                     <span className="text-xs md:text-sm">({doctor.reviewCount} reviews)</span>
                   </>
                 )}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span className="text-xs md:text-sm">{doctor.experience} yrs experience</span>
               </div>
             </div>
 

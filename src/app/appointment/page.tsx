@@ -194,6 +194,21 @@ function AppointmentPageInner() {
                   <p className="text-gray-600 mb-2 sm:mb-3 text-xs sm:text-sm md:text-base">
                     {department?.name}
                   </p>
+                  {doctor.qualification && doctor.qualification.length > 0 && (
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 md:gap-2 mb-2">
+                      {doctor.qualification.slice(0, 3).map((q) => (
+                        <span
+                          key={q}
+                          className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-full bg-gray-50 text-gray-700 text-[10px] sm:text-xs font-medium border border-gray-200"
+                        >
+                          {q}
+                        </span>
+                      ))}
+                      {doctor.qualification.length > 3 && (
+                        <span className="text-[10px] sm:text-xs text-gray-500">+{doctor.qualification.length - 3} more</span>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
                     <div className="flex items-center gap-1">
@@ -215,6 +230,9 @@ function AppointmentPageInner() {
                         ${doctor.consultationFee} consultation
                       </div>
                     )}
+                    <div className="text-gray-600 text-[11px] sm:text-xs md:text-sm">
+                      {doctor.experience} yrs experience
+                    </div>
                   </div>
                 </div>
                 
@@ -463,17 +481,19 @@ function AppointmentPageInner() {
       </section>
 
       {/* Progress Steps */}
-  <section className="py-6 border-b">
+  <section className={`py-6${currentStep !== 'confirmation' ? ' border-b' : ''}`}>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="overflow-x-auto overscroll-x-contain">
-              <div className="flex items-center gap-3 md:gap-6 flex-nowrap min-w-max pr-2">
-              {[
-                { key: 'doctor-selection', label: 'Select Doctor', icon: User },
-                { key: 'date-time', label: 'Date & Time', icon: Calendar },
-                { key: 'details', label: 'Details', icon: FileText },
-                { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
-              ].map((step, index) => {
+              <div className="flex items-center justify-center gap-3 md:gap-6 flex-nowrap min-w-max pr-2 mx-auto">
+              {(
+                [
+                  { key: 'doctor-selection', label: 'Select Doctor', icon: User },
+                  { key: 'date-time', label: 'Date & Time', icon: Calendar },
+                  { key: 'details', label: 'Details', icon: FileText },
+                  { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
+                ] as const
+              ).map((step, index, steps) => {
                 const isActive = currentStep === step.key;
                 const isCompleted = ['doctor-selection', 'date-time', 'details'].indexOf(currentStep) > index;
                 
@@ -496,7 +516,7 @@ function AppointmentPageInner() {
                       </span>
                       <span className="sr-only">{step.label}</span>
                     </div>
-                    {index < 4 && (
+                    {index < steps.length - 1 && (
                       <div className={`w-6 md:w-12 h-0.5 mx-1.5 md:mx-4 ${
                         isCompleted ? 'bg-green-500' : 'bg-gray-200'
                       }`} />
