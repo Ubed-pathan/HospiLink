@@ -4,12 +4,14 @@ import React from 'react';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
+import PresenceToggle from '@/components/doctor/PresenceToggle';
 
 export default function DoctorHome() {
   return (
     <div className="space-y-6">
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <PresenceToggle />
           <Link href="/doctor/appointments" className="px-3 py-2 rounded-md border bg-blue-600 text-white hover:bg-blue-700">View Appointments</Link>
           <Link href="/doctor/schedule" className="px-3 py-2 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">Edit Schedule</Link>
           <Link href="/doctor/patients" className="px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50">My Patients</Link>
