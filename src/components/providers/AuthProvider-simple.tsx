@@ -26,12 +26,27 @@ export default function RecoilAuthProvider({ children }: { children: React.React
           const response = await authAPI.loadOnRefresh();
           if (response && response.id && response.username) {
             if (didCancel) break;
+            // Normalize roles coming as ["ADMIN","USER"] to lowercase app roles
+            type RefreshPayload = { id: string; username: string; email?: string; fullName?: string; role?: string; roles?: string[] };
+            const resp = response as unknown as RefreshPayload;
+            const backendRoles: string[] = Array.isArray(resp.roles) ? resp.roles! : [];
+            const normRoles = backendRoles
+              .map(r => String(r).toLowerCase())
+              .map(r => (r === 'user' ? 'patient' : r))
+              .filter(r => r === 'patient' || r === 'doctor' || r === 'admin') as Array<'patient' | 'doctor' | 'admin'>;
+            const primary: 'patient' | 'doctor' | 'admin' = (normRoles.includes('admin')
+              ? 'admin'
+              : normRoles.includes('doctor')
+              ? 'doctor'
+              : (response.role as 'patient' | 'doctor' | 'admin') || 'patient');
+
             const user = {
               id: response.id,
               email: response.email,
               name: response.fullName,
               username: response.username,
-              role: (response.role as 'patient' | 'doctor' | 'admin') || 'patient',
+              role: primary,
+              roles: normRoles.length ? normRoles : undefined,
             };
             setRecoilAuth({
               isAuthenticated: true,

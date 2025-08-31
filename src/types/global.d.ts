@@ -12,6 +12,7 @@ declare global {
         name: string;
         username?: string;
   role?: 'patient' | 'doctor' | 'admin';
+  roles?: Array<'patient' | 'doctor' | 'admin'>;
       } | null;
     };
   }

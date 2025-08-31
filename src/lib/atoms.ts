@@ -11,6 +11,7 @@ export interface User {
   email: string;
   name: string;
   role: 'patient' | 'doctor' | 'admin';
+  roles?: Array<'patient' | 'doctor' | 'admin'>;
   contactNumber?: string;
   profileImage?: string;
   dateOfBirth?: string;

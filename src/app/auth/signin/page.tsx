@@ -22,12 +22,24 @@ export default function SignInPage() {
 
   // Rely on AuthProvider broadcast to redirect if already authenticated
   useEffect(() => {
+    const destinationFor = (user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> }) => {
+      const roles = user?.roles || [];
+      const primary = user?.role;
+      if (roles.includes('admin') || primary === 'admin') return '/admin';
+      if (roles.includes('doctor') || primary === 'doctor') return '/doctor';
+      return '/portal';
+    };
     const initial = window.__HOSPILINK_AUTH__?.isAuthenticated;
-    if (initial) router.replace('/');
+    if (initial) {
+      const user = window.__HOSPILINK_AUTH__?.user as { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> } | undefined;
+      router.replace(destinationFor(user));
+    }
 
     const onReady = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean } | undefined;
-      if (detail?.isAuthenticated) router.replace('/');
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> } } | undefined;
+      if (detail?.isAuthenticated) {
+        router.replace(destinationFor(detail.user));
+      }
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     return () => window.removeEventListener('hospilink-auth-ready', onReady);
@@ -39,8 +51,7 @@ export default function SignInPage() {
     try {
       // Mock Google OAuth flow - in production this would use real OAuth
       await new Promise(resolve => setTimeout(resolve, 2000));
-      // Mock successful response
-  router.push('/');
+  // Mock successful response; AuthProvider will redirect based on role
     } catch {
       setError('Failed to sign in with Google. Please try again.');
     } finally {
@@ -63,8 +74,7 @@ export default function SignInPage() {
   setIsSubmitting(true);
     try {
       await authAPI.signin(username, password);
-  // Cookies/session set by backend (withCredentials). Let AuthProvider set Recoil on next paint.
-  router.push('/');
+  // Cookies/session set by backend (withCredentials). AuthProvider will broadcast and redirect based on role.
   } catch {
       setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {
