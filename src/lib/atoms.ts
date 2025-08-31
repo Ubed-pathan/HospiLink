@@ -10,7 +10,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'patient' | 'admin';
+  role: 'patient' | 'doctor' | 'admin';
   contactNumber?: string;
   profileImage?: string;
   dateOfBirth?: string;

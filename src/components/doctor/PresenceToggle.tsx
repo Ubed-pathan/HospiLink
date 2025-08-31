@@ -5,9 +5,10 @@ import React from 'react';
 type PresenceToggleProps = {
   className?: string;
   onChange?: (isPresent: boolean) => void;
+  showLabel?: boolean;
 };
 
-export default function PresenceToggle({ className = '', onChange }: PresenceToggleProps) {
+export default function PresenceToggle({ className = '', onChange, showLabel = true }: PresenceToggleProps) {
   const [isPresent, setIsPresent] = React.useState<boolean>(true);
   const storageKey = 'doctor:isPresent';
 
@@ -31,7 +32,7 @@ export default function PresenceToggle({ className = '', onChange }: PresenceTog
 
   return (
     <div className={`flex items-center gap-2 ${className}`} data-testid="presence-toggle">
-      <span className="text-sm text-gray-600">Status:</span>
+  {showLabel && <span className="text-sm text-gray-600">Status:</span>}
       <button
         type="button"
         onClick={toggle}

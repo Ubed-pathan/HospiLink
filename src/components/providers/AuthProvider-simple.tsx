@@ -31,7 +31,7 @@ export default function RecoilAuthProvider({ children }: { children: React.React
               email: response.email,
               name: response.fullName,
               username: response.username,
-              role: 'patient' as const,
+              role: (response.role as 'patient' | 'doctor' | 'admin') || 'patient',
             };
             setRecoilAuth({
               isAuthenticated: true,

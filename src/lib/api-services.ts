@@ -5,6 +5,7 @@
 
 import api from './api';
 import { User, Doctor, Department, Appointment } from './types';
+import type { DoctorRegisterFormData, AdminUserFormData } from './validations';
 
 // Authentication APIs
 export const authAPI = {
@@ -114,8 +115,8 @@ export const doctorAPI = {
       experienceYears?: number;
       qualification?: string; // comma-separated or single string
       licenseNumber?: string;
-      hospitalName?: string;
-      hospitalAddress?: string;
+  hospitalName?: string;
+  doctorAddress?: string;
       availableTimeFrom?: string; // HH:mm
       availableTimeTo?: string;   // HH:mm
       city?: string;
@@ -153,7 +154,7 @@ export const doctorAPI = {
         qualification,
         rating: typeof d.rating === 'number' ? d.rating : 0,
         reviewCount: d.reviewCount ?? 0,
-        location: d.hospitalName || d.city,
+  location: d.hospitalName || d.city || d.doctorAddress,
         availableSlots: toSlots(d.availableTimeFrom, d.availableTimeTo),
         isAvailable: d.isPresent,
         createdAt: d.createdAt,
@@ -183,7 +184,15 @@ export const doctorAPI = {
 
   // Add doctor (Admin only)
   addDoctor: async (doctorData: Omit<Doctor, 'id'>): Promise<Doctor> => {
+    // Legacy generic endpoint (kept for compatibility)
     const response = await api.post('/doctors', doctorData);
+    return response.data;
+  },
+
+  // Register doctor via Admin (uses DoctorRegisterDto shape on backend)
+  registerDoctor: async (payload: DoctorRegisterFormData) => {
+    // Assuming admin-scoped endpoint; adjust as needed to match backend
+    const response = await api.post('/admin/doctors/register', payload);
     return response.data;
   },
 
@@ -193,9 +202,21 @@ export const doctorAPI = {
     return response.data;
   },
 
+  // Admin update using admin endpoint (partial DTO accepted by backend)
+  adminUpdateDoctor: async (id: string, payload: Partial<DoctorRegisterFormData>) => {
+    const response = await api.put(`/admin/doctors/${id}`, payload);
+    return response.data;
+  },
+
   // Delete doctor (Admin only)
   deleteDoctor: async (id: string) => {
     const response = await api.delete(`/doctors/${id}`);
+    return response.data;
+  },
+
+  // Admin delete using admin endpoint
+  adminDeleteDoctor: async (id: string) => {
+    const response = await api.delete(`/admin/doctors/${id}`);
     return response.data;
   },
 
@@ -204,6 +225,26 @@ export const doctorAPI = {
     const response = await api.get(`/doctors/${doctorId}/availability`, {
       params: { date },
     });
+    return response.data;
+  },
+};
+
+// Admin Users APIs
+export const adminUserAPI = {
+  list: async (): Promise<User[]> => {
+    const response = await api.get('/admin/users');
+    return response.data;
+  },
+  create: async (payload: AdminUserFormData): Promise<User> => {
+    const response = await api.post('/admin/users', payload);
+    return response.data;
+  },
+  update: async (id: string, payload: Partial<AdminUserFormData>): Promise<User> => {
+    const response = await api.put(`/admin/users/${id}`, payload);
+    return response.data;
+  },
+  remove: async (id: string) => {
+    const response = await api.delete(`/admin/users/${id}`);
     return response.data;
   },
 };

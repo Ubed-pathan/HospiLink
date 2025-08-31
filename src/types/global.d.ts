@@ -11,7 +11,7 @@ declare global {
         email: string;
         name: string;
         username?: string;
-        role?: 'patient' | 'admin';
+  role?: 'patient' | 'doctor' | 'admin';
       } | null;
     };
   }

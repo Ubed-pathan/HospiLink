@@ -15,7 +15,7 @@ export default function AdminHome() {
   ];
 
   return (
-    <div className="space-y-6">
+  <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k) => (
           <div key={k.label} className="bg-white border border-gray-200 rounded-lg p-4">
@@ -33,10 +33,10 @@ export default function AdminHome() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4 lg:col-span-2">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-900">Monthly Appointments</h2>
-            <span className="text-sm text-gray-500">This Year</span>
+      <h2 className="font-semibold text-gray-900">Monthly Appointments</h2>
+      <span className="text-sm text-blue-700 bg-blue-50 px-2 py-0.5 rounded">This Year</span>
           </div>
           <MiniLineChart values={[89,95,108,112,98,105,118,124,116,132,128,135]} width={640} height={160} />
         </div>
@@ -48,7 +48,7 @@ export default function AdminHome() {
               return (
                 <div key={d.id} className="flex items-center justify-between">
                   <span className="text-gray-700">{d.name}</span>
-                  <span className="text-gray-900 font-medium">{count}</span>
+          <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{count}</span>
                 </div>
               );
             })}
@@ -58,33 +58,39 @@ export default function AdminHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4 lg:col-span-2">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-900">Recent Appointments</h2>
-            <Link href="/admin/appointments" className="text-sm text-blue-600 hover:underline">View all</Link>
+      <div className="flex items-center justify-between mb-3">
+    <h2 className="font-semibold text-gray-900">Recent Appointments</h2>
+    <Link href="/admin/appointments" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">View all</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Time</th>
-                  <th className="py-2 pr-4">Doctor</th>
-                  <th className="py-2 pr-4">Department</th>
-                  <th className="py-2 pr-4">Status</th>
+              <thead className="bg-gray-50">
+                <tr className="text-left text-gray-600 border-b">
+                  <th className="py-2.5 pr-4">Date</th>
+                  <th className="py-2.5 pr-4">Time</th>
+                  <th className="py-2.5 pr-4">Doctor</th>
+                  <th className="py-2.5 pr-4">Department</th>
+                  <th className="py-2.5 pr-4">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {mockAppointments.slice(0, 6).map((a) => {
                   const doc = mockDoctors.find((d) => d.id === a.doctorId);
                   const dept = mockDepartments.find((d) => d.id === (a.departmentId || doc?.departmentId));
                   return (
-                    <tr key={a.id} className="border-b last:border-0">
-                      <td className="py-2 pr-4 text-gray-900">{a.date}</td>
-                      <td className="py-2 pr-4">{a.time || a.timeSlot || '-'}</td>
-                      <td className="py-2 pr-4">{doc ? `Dr. ${doc.name}` : '-'}</td>
-                      <td className="py-2 pr-4">{dept?.name || '-'}</td>
-                      <td className="py-2 pr-4">
-                        <span className={`px-2 py-0.5 rounded text-xs border ${a.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : a.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                    <tr key={a.id} className="hover:bg-gray-50/50">
+                      <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{a.date}</td>
+                      <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{a.time || a.timeSlot || '-'}</td>
+                      <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doc ? `Dr. ${doc.name}` : '-'}</td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
+                        {dept?.name ? (
+                          <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{dept.name}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4">
+        <span className={`px-2 py-0.5 rounded text-xs border ${a.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : a.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                           {a.status}
                         </span>
                       </td>
@@ -107,12 +113,12 @@ export default function AdminHome() {
                     <div className="text-gray-900 font-medium">Dr. {d.name}</div>
                     <div className="text-xs text-gray-500">{d.specialization}</div>
                   </div>
-                  <div className="text-sm text-gray-700">⭐ {d.rating?.toFixed ? d.rating.toFixed(1) : d.rating}</div>
+      <div className="text-sm text-blue-700 bg-blue-50 px-2 py-0.5 rounded">⭐ {d.rating?.toFixed ? d.rating.toFixed(1) : d.rating}</div>
                 </div>
               ))}
           </div>
           <div className="mt-4">
-            <Link href="/admin/doctors" className="text-sm text-blue-600 hover:underline">Manage doctors</Link>
+    <Link href="/admin/doctors" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">Manage doctors</Link>
           </div>
         </div>
       </div>

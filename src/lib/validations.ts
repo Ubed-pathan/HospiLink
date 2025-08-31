@@ -242,6 +242,64 @@ export const contactFormSchema = z.object({
     .max(1000, 'Message must be less than 1000 characters'),
 });
 
+// Doctor Registration Schema (Admin) – mirrors backend DoctorRegisterDto
+export const doctorRegisterSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional().or(z.literal('')),
+  lastName: z.string().min(1, 'Last name is required'),
+  username: z
+    .string()
+    .min(1, 'Username is required')
+    .min(4, 'Username must be between 4 and 20 characters')
+    .max(20, 'Username must be between 4 and 20 characters'),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Email should be valid'),
+  phoneNumber: z
+    .string()
+    .min(1, 'Phone number is required')
+    .regex(/^\d{10}$/, 'Phone number must be 10 digits'),
+  gender: z.string().min(1, 'Gender is required'),
+  age: z
+    .number()
+    .int('Age is required')
+    .min(1, 'Age is required')
+    .max(120, 'Age must be 120 or less'),
+  specialization: z.string().min(1, 'Specialization is required'),
+  experienceYears: z
+    .number()
+    .min(0, 'Experience must be non-negative'),
+  qualification: z.string().min(1, 'Qualification is required'),
+  licenseNumber: z.string().min(1, 'License number is required'),
+  doctorAddress: z.string().min(1, 'Doctor address is required'),
+  availableTimeFrom: z.string().min(1, 'Available time from is required'),
+  availableTimeTo: z.string().min(1, 'Available time to is required'),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  country: z.string().min(1, 'Country is required'),
+  zipCode: z.string().min(1, 'Zip code is required'),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters'),
+  isPresent: z.boolean(),
+});
+
+// Admin User Management Schema
+export const adminUserSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(80, 'Name too long'),
+  username: z
+    .string()
+    .min(4, 'Username must be between 4 and 20 characters')
+    .max(20, 'Username must be between 4 and 20 characters'),
+  email: z.string().min(1, 'Email is required').email('Email should be valid'),
+  phoneNumber: z
+    .string()
+    .regex(/^\d{10}$/, 'Phone number must be 10 digits'),
+  role: z.enum(['patient', 'doctor', 'admin']),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+});
+
 // Export TypeScript types derived from schemas
 export type EmailFormData = z.infer<typeof emailSchema>;
 export type OtpFormData = z.infer<typeof otpSchema>;
@@ -255,3 +313,5 @@ export type DepartmentFormData = z.infer<typeof departmentSchema>;
 export type ReviewFormData = z.infer<typeof reviewSchema>;
 export type DoctorSearchFormData = z.infer<typeof doctorSearchSchema>;
 export type ContactFormData = z.infer<typeof contactFormSchema>;
+export type DoctorRegisterFormData = z.infer<typeof doctorRegisterSchema>;
+export type AdminUserFormData = z.infer<typeof adminUserSchema>;

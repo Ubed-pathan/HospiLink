@@ -64,7 +64,7 @@ const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-transparent backdrop-blur-sm md:backdrop-blur-md transition-opacity animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
       />
       
@@ -72,7 +72,7 @@ const Modal: React.FC<ModalProps> = ({
       <div className="flex min-h-full items-center justify-center p-4">
         <div 
           className={cn(
-            'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all animate-scale-in',
+            'relative w-full bg-white dark:bg-white rounded-xl shadow-xl transform transition-all animate-scale-in',
             sizeClasses[size],
             className
           )}
@@ -80,19 +80,18 @@ const Modal: React.FC<ModalProps> = ({
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
               {title && (
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-blue-600">
                   {title}
                 </h2>
               )}
-              
               {showCloseButton && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-2 text-blue-600 hover:bg-gray-100"
                 >
                   <X className="h-5 w-5" />
                 </Button>

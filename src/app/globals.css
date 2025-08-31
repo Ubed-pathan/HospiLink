@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Softer app background and darker text for better contrast */
+  --background: #F8FAFC; /* slate-50 */
+  --foreground: #0E1F2F; /* hospital primary */
 }
 
 @theme inline {
@@ -17,8 +18,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAFC;
+  --foreground: #0E1F2F;
 }
 
 @media (prefers-color-scheme: dark) {
