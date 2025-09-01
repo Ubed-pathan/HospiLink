@@ -238,24 +238,31 @@ export const adminUserAPI = {
       username?: string;
       id: string;
       roles?: Array<string> | Set<string>;
+      phoneNumber?: string;
     };
     const response = await api.get<BackendUserDto[]>('/user/getAllUsers');
     const arr = Array.isArray(response.data) ? response.data : [];
-    const mapRole = (rolesIn?: Array<string> | Set<string>): User['role'] => {
+    const normalizeRoles = (rolesIn?: Array<string> | Set<string>): Array<'patient' | 'doctor' | 'admin'> => {
       const list = Array.isArray(rolesIn) ? rolesIn : rolesIn ? Array.from(rolesIn) : [];
-      const norm = list.map((r) => String(r).toLowerCase());
-      if (norm.includes('admin')) return 'admin';
-      if (norm.includes('doctor')) return 'doctor';
-      // Map backend USER to patient in UI
+      const norm = list
+        .map((r) => String(r).toLowerCase())
+        .map((r) => (r === 'user' ? 'patient' : r))
+        .filter((r) => r === 'patient' || r === 'doctor' || r === 'admin') as Array<'patient' | 'doctor' | 'admin'>;
+      return Array.from(new Set(norm));
+    };
+    const pickPrimary = (roles: Array<'patient' | 'doctor' | 'admin'>): User['role'] => {
+      if (roles.includes('admin')) return 'admin';
+      if (roles.includes('doctor')) return 'doctor';
       return 'patient';
     };
     const users: User[] = arr.map((u) => ({
       id: u.id,
       email: u.email || '',
       name: u.fullName || u.username || 'User',
-      role: mapRole(u.roles),
-      phone: undefined,
-      contactNumber: undefined,
+      roles: normalizeRoles(u.roles),
+      role: pickPrimary(normalizeRoles(u.roles)),
+      phone: u.phoneNumber,
+      contactNumber: u.phoneNumber,
     }));
     return users;
   },

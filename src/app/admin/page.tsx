@@ -10,7 +10,7 @@ export default function AdminHome() {
   const kpis = [
     { label: 'Total Appointments', value: 1247, trend: [89,95,108,112,98,105,118,124,116,132,128,135] },
     { label: 'Total Doctors', value: 86, trend: [60,62,65,68,70,72,75,78,80,83,85,86] },
-    { label: 'Total Patients', value: 5230, trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
+  { label: 'Registered Users', value: 5230, trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
     { label: 'Avg Rating', value: '4.7', trend: [4.3,4.4,4.5,4.6,4.6,4.7] },
   ];
 

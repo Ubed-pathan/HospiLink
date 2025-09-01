@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api-services';
-import { CalendarDays, Stethoscope, Users, UserCircle2, Building2, Star, Settings, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, Stethoscope, Users, Building2, Star, Settings, LayoutDashboard, LogOut } from 'lucide-react';
 
 type NavItem = {
   href: string;
@@ -16,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/appointments', label: 'Appointments', icon: CalendarDays },
   { href: '/admin/doctors', label: 'Doctors', icon: Stethoscope },
   { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/patients', label: 'Patients', icon: UserCircle2 },
   { href: '/admin/departments', label: 'Departments', icon: Building2 },
   { href: '/admin/reviews', label: 'Reviews', icon: Star },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
@@ -61,12 +60,16 @@ export default function AdminNav() {
             </li>
           );
         })}
+        {/* visual separator before logout */}
+        <li aria-hidden="true" className="mx-1 h-6 w-px bg-gray-200" />
         <li>
           <button
             onClick={logout}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-gray-700 hover:text-red-700 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            aria-label="Logout"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 hover:border-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
           >
-            Logout
+            <LogOut className="w-4 h-4" />
+            <span className="font-medium">Logout</span>
           </button>
         </li>
       </ul>

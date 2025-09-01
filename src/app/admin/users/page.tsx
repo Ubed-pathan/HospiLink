@@ -28,9 +28,10 @@ export default function AdminUsersPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<Mode>('create');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const empty: AdminUserFormData = { name: '', username: '', email: '', phoneNumber: '', role: 'patient', password: '' };
+  const empty: AdminUserFormData = { name: '', username: '', email: '', phoneNumber: '', role: 'doctor', password: '' };
   const [form, setForm] = useState<AdminUserFormData>(empty);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [roleFilter, setRoleFilter] = useState<'all' | 'doctor' | 'admin'>('all');
 
   const load = async () => {
     setIsLoading(true);
@@ -49,9 +50,16 @@ export default function AdminUsersPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter((u) => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.role || '').toLowerCase().includes(q));
-  }, [users, search]);
+    const matchesQuery = (u: User) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.role || '').toLowerCase().includes(q);
+    const matchesRole = (u: User) => {
+      const roles = (u.roles && u.roles.length ? u.roles : [u.role]) as Array<'patient' | 'doctor' | 'admin'>;
+      // Always exclude users that are only 'patient'
+      if (roles.length === 1 && roles[0] === 'patient') return false;
+      if (roleFilter === 'all') return true;
+      return roles.includes(roleFilter);
+    };
+    return users.filter((u) => matchesQuery(u) && matchesRole(u));
+  }, [users, search, roleFilter]);
 
   const openCreate = () => {
     setMode('create');
@@ -116,14 +124,26 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <h2 className="text-2xl font-bold text-gray-900">Users</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:ml-auto">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"><SearchIcon className="w-4 h-4" /></span>
             <Input tone="blue" forceLight className="pl-9" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Button variant="primary" className="!bg-blue-600 !text-white hover:!bg-blue-700" onClick={openCreate}>Add User</Button>
+        </div>
+        <div className="md:ml-0">
+          <label className="block text-xs text-gray-500 mb-1">Filter by role</label>
+          <select
+            className="block w-full md:w-44 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-gray-900"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as 'all' | 'doctor' | 'admin')}
+          >
+            <option value="all">All</option>
+            <option value="doctor">doctor</option>
+            <option value="admin">admin</option>
+          </select>
         </div>
       </div>
 
@@ -137,7 +157,7 @@ export default function AdminUsersPage() {
                 <th className="py-2 px-3">Name</th>
                 <th className="py-2 px-3">Email</th>
                 <th className="py-2 px-3">Phone</th>
-                <th className="py-2 px-3">Role</th>
+                <th className="py-2 px-3">Roles</th>
                 <th className="py-2 px-3">Actions</th>
               </tr>
             </thead>
@@ -147,7 +167,17 @@ export default function AdminUsersPage() {
                   <td className="py-2 px-3 text-gray-900">{u.name}</td>
                   <td className="py-2 px-3 text-gray-900">{u.email}</td>
                   <td className="py-2 px-3 text-gray-900">{u.phone || u.contactNumber || '-'}</td>
-                  <td className="py-2 px-3 text-gray-900">{u.role}</td>
+                  <td className="py-2 px-3 text-gray-900">
+                    {u.roles && u.roles.length > 1 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {u.roles.map((r) => (
+                          <span key={r} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 border border-gray-200 capitalize">{r}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="capitalize">{u.role}</span>
+                    )}
+                  </td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
           <Button size="sm" variant="ghost" className="text-blue-700 hover:bg-blue-50" onClick={() => openEdit(u)}>Edit</Button>
@@ -189,7 +219,6 @@ export default function AdminUsersPage() {
             <div>
               <label className="block text-sm font-medium text-gray-900">Role</label>
               <select className="mt-2 block w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as AdminUserFormData['role'] })}>
-                <option value="patient">patient</option>
                 <option value="doctor">doctor</option>
                 <option value="admin">admin</option>
               </select>

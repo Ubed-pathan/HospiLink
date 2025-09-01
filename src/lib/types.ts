@@ -8,6 +8,7 @@ export interface User {
   name: string;
   contactNumber?: string;
   phone?: string;
+  roles?: Array<'patient' | 'doctor' | 'admin'>;
   dateOfBirth?: string;
   gender?: 'male' | 'female' | 'other';
   address?: string;
