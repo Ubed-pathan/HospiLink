@@ -22,23 +22,17 @@ export default function SignInPage() {
 
   // Rely on AuthProvider broadcast to redirect if already authenticated
   useEffect(() => {
-    const destinationFor = (user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> }) => {
-      const roles = user?.roles || [];
-      const primary = user?.role;
-      if (roles.includes('admin') || primary === 'admin') return '/admin';
-      if (roles.includes('doctor') || primary === 'doctor') return '/doctor';
-      return '/portal';
-    };
+    // Always send to landing page; RouteGuard will handle role-based redirects
+    const destinationFor = () => '/';
     const initial = window.__HOSPILINK_AUTH__?.isAuthenticated;
     if (initial) {
-      const user = window.__HOSPILINK_AUTH__?.user as { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> } | undefined;
-      router.replace(destinationFor(user));
+      router.replace(destinationFor());
     }
 
     const onReady = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> } } | undefined;
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean } | undefined;
       if (detail?.isAuthenticated) {
-        router.replace(destinationFor(detail.user));
+        router.replace(destinationFor());
       }
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
@@ -74,7 +68,28 @@ export default function SignInPage() {
   setIsSubmitting(true);
     try {
       await authAPI.signin(username, password);
-  // Cookies/session set by backend (withCredentials). AuthProvider will broadcast and redirect based on role.
+      // Refresh auth state immediately and broadcast for guards/listeners
+      try {
+        const resp = await authAPI.loadOnRefresh();
+        type RefreshPayload = { id: string; username: string; email?: string; fullName?: string; roles?: string[]; role?: string };
+        const data = resp as unknown as RefreshPayload;
+        const backendRoles = Array.isArray(data.roles) ? data.roles : [];
+        const roles = backendRoles
+          .map((r) => String(r).toLowerCase())
+          .map((r) => (r === 'user' ? 'patient' : r))
+          .filter((r) => r === 'patient' || r === 'doctor' || r === 'admin') as Array<'patient' | 'doctor' | 'admin'>;
+        const primary: 'patient' | 'doctor' | 'admin' = roles.includes('admin') ? 'admin' : roles.includes('doctor') ? 'doctor' : 'patient';
+        const user = { id: data.id, email: data.email, name: data.fullName, username: data.username, role: primary, roles };
+        if (typeof window !== 'undefined') {
+          try {
+            type WUser = { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> };
+            (window as unknown as { __HOSPILINK_AUTH__?: { isAuthenticated: boolean; user?: WUser } }).__HOSPILINK_AUTH__ = { isAuthenticated: true, user };
+            window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: true, user } }));
+          } catch {}
+        }
+      } catch {}
+      // Navigate to landing; RouteGuard will handle role-based redirects
+      router.replace('/');
   } catch {
       setError(`Invalid username or password. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
     } finally {

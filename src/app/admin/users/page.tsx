@@ -145,9 +145,9 @@ export default function AdminUsersPage() {
               {filtered.map((u) => (
         <tr key={u.id} className="border-b last:border-0 hover:bg-blue-50/40">
                   <td className="py-2 px-3 text-gray-900">{u.name}</td>
-                  <td className="py-2 px-3">{u.email}</td>
-                  <td className="py-2 px-3">{u.phone || u.contactNumber || '-'}</td>
-                  <td className="py-2 px-3">{u.role}</td>
+                  <td className="py-2 px-3 text-gray-900">{u.email}</td>
+                  <td className="py-2 px-3 text-gray-900">{u.phone || u.contactNumber || '-'}</td>
+                  <td className="py-2 px-3 text-gray-900">{u.role}</td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
           <Button size="sm" variant="ghost" className="text-blue-700 hover:bg-blue-50" onClick={() => openEdit(u)}>Edit</Button>

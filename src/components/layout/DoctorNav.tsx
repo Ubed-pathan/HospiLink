@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { authAPI } from '@/lib/api-services';
 import { LayoutDashboard, CalendarDays, CalendarClock, UserCircle2, Star, Settings } from 'lucide-react';
 
 type NavItem = {
@@ -21,6 +22,15 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DoctorNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } finally {
+      router.replace('/auth/signin');
+    }
+  };
 
   return (
     <div className="mt-3">
@@ -48,6 +58,14 @@ export default function DoctorNav() {
                 </li>
               );
             })}
+            <li>
+              <button
+                onClick={logout}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-gray-700 hover:text-red-700 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                Logout
+              </button>
+            </li>
           </ul>
         </nav>
       </div>

@@ -47,7 +47,7 @@ export const authAPI = {
 
   // Logout
   logout: async () => {
-    const response = await api.post('/auth/logout');
+  const response = await api.post('/user/logout');
     return response.data;
   },
 
@@ -191,8 +191,8 @@ export const doctorAPI = {
 
   // Register doctor via Admin (uses DoctorRegisterDto shape on backend)
   registerDoctor: async (payload: DoctorRegisterFormData) => {
-    // Assuming admin-scoped endpoint; adjust as needed to match backend
-    const response = await api.post('/admin/doctors/register', payload);
+  // Use provided backend endpoint for doctor registration
+  const response = await api.post('/doctor/register', payload);
     return response.data;
   },
 
@@ -232,8 +232,32 @@ export const doctorAPI = {
 // Admin Users APIs
 export const adminUserAPI = {
   list: async (): Promise<User[]> => {
-    const response = await api.get('/admin/users');
-    return response.data;
+    type BackendUserDto = {
+      fullName?: string;
+      email?: string;
+      username?: string;
+      id: string;
+      roles?: Array<string> | Set<string>;
+    };
+    const response = await api.get<BackendUserDto[]>('/user/getAllUsers');
+    const arr = Array.isArray(response.data) ? response.data : [];
+    const mapRole = (rolesIn?: Array<string> | Set<string>): User['role'] => {
+      const list = Array.isArray(rolesIn) ? rolesIn : rolesIn ? Array.from(rolesIn) : [];
+      const norm = list.map((r) => String(r).toLowerCase());
+      if (norm.includes('admin')) return 'admin';
+      if (norm.includes('doctor')) return 'doctor';
+      // Map backend USER to patient in UI
+      return 'patient';
+    };
+    const users: User[] = arr.map((u) => ({
+      id: u.id,
+      email: u.email || '',
+      name: u.fullName || u.username || 'User',
+      role: mapRole(u.roles),
+      phone: undefined,
+      contactNumber: undefined,
+    }));
+    return users;
   },
   create: async (payload: AdminUserFormData): Promise<User> => {
     const response = await api.post('/admin/users', payload);

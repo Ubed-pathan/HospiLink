@@ -7,10 +7,21 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { authAPI } from '@/lib/api-services';
 import { Stethoscope, Menu, X } from 'lucide-react';
 
 export default function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+    } finally {
+      router.replace('/auth/signin');
+    }
+  };
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -72,6 +83,12 @@ export default function NavHeader() {
             >
               Book Appointment
             </Link>
+            <button
+              onClick={handleLogout}
+              className="text-gray-600 hover:text-red-600 font-medium transition-colors"
+            >
+              Logout
+            </button>
           </div>
 
           {/* Tablet CTA Button - Compact */}
@@ -123,6 +140,12 @@ export default function NavHeader() {
               >
                 Book Appointment
               </Link>
+              <button
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                className="block w-full text-center border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition-colors text-sm"
+              >
+                Logout
+              </button>
             </div>
           </div>
         )}

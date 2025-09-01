@@ -126,6 +126,35 @@ export default function AdminDoctorsPage() {
     }
   };
 
+  // Prefill the form with valid dummy data
+  const fillWithDummy = () => {
+    const dummy: DoctorRegisterFormData = {
+      firstName: 'Arjun',
+      middleName: '',
+      lastName: 'Sethi',
+      username: 'arjun.sethi',
+      email: 'arjun.sethi@example.com',
+      phoneNumber: '9123456780',
+      gender: 'male',
+      age: 36,
+      specialization: 'Cardiologist',
+      experienceYears: 10,
+      qualification: 'MBBS, MD (Cardiology), DM (Cardiology)',
+      licenseNumber: 'MCI/MH/789012',
+      doctorAddress: 'Sethi Heart Clinic, 3rd Floor, Linking Rd',
+      availableTimeFrom: '10:00',
+      availableTimeTo: '16:00',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      zipCode: '400001',
+      password: 'StrongP@ss1',
+      isPresent: true,
+    };
+    setForm(dummy);
+    setFormErrors({});
+  };
+
   const remove = async (id: string) => {
     if (!confirm('Delete this doctor?')) return;
     setIsLoading(true);
@@ -217,23 +246,23 @@ export default function AdminDoctorsPage() {
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full table-fixed text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-600 border-b">
-                <th className="py-2.5 px-3">Name</th>
-                <th className="py-2.5 px-3">Specialization</th>
-                <th className="py-2.5 px-3">Experience</th>
-                <th className="py-2.5 px-3">Email</th>
-                <th className="py-2.5 px-3">Phone</th>
-                <th className="py-2.5 px-3">Rating</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3">Actions</th>
+                <th className="py-2.5 px-3 w-[220px]">Name</th>
+                <th className="py-2.5 px-3 w-[180px]">Specialization</th>
+                <th className="py-2.5 px-3 w-[90px]">Experience</th>
+                <th className="py-2.5 px-3 w-[260px]">Email</th>
+                <th className="py-2.5 px-3 w-[150px]">Phone</th>
+                <th className="py-2.5 px-3 w-[90px]">Rating</th>
+                <th className="py-2.5 px-3 w-[110px]">Status</th>
+                <th className="py-2.5 px-3 w-[160px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.map((d) => (
         <tr key={d.id} className="hover:bg-hospital-accent/5">
-                  <td className="py-2.5 px-3 text-gray-900">
+                  <td className="py-2.5 px-3 text-gray-900 w-[220px]">
                     <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-hospital-secondary text-white flex items-center justify-center text-xs font-semibold">
                         {(d.name || 'DR').split(' ').map(n => n[0]).join('').slice(0,2)}
@@ -244,17 +273,23 @@ export default function AdminDoctorsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-2 px-3">{d.specialization || d.specialty || '-'}</td>
-                  <td className="py-2 px-3">{d.experience ?? 0} yrs</td>
-                  <td className="py-2 px-3">{d.email || '-'}</td>
-                  <td className="py-2 px-3">{d.phone || '-'}</td>
-                  <td className="py-2 px-3">⭐ {typeof d.rating === 'number' ? d.rating.toFixed(1) : (d.rating ?? '-')}</td>
-                  <td className="py-2 px-3">
+                  <td className="py-2 px-3 w-[180px] truncate text-gray-900" title={d.specialization || d.specialty || '-' }>
+                    {d.specialization || d.specialty || '-'}
+                  </td>
+                  <td className="py-2 px-3 w-[90px] whitespace-nowrap text-gray-900">{d.experience ?? 0} yrs</td>
+                  <td className="py-2 px-3 w-[260px] truncate text-gray-900" title={d.email || '-' }>
+                    {d.email || '-'}
+                  </td>
+                  <td className="py-2 px-3 w-[150px] whitespace-nowrap text-gray-900" title={d.phone || '-' }>
+                    {d.phone || '-'}
+                  </td>
+                  <td className="py-2 px-3 w-[90px] text-gray-900">⭐ {typeof d.rating === 'number' ? d.rating.toFixed(1) : (d.rating ?? '-')}</td>
+                  <td className="py-2 px-3 w-[110px]">
                     <span className={`px-2 py-0.5 rounded-full text-xs border ${d.isAvailable ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{d.isAvailable ? 'Present' : 'Absent'}</span>
                   </td>
-                  <td className="py-2 px-3">
+          <td className="py-2 px-3 w-[160px] whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" className="text-hospital-accent hover:bg-hospital-accent/10" onClick={() => openEdit(d)}>Edit</Button>
+            <Button size="sm" variant="ghost" className="!text-gray-900 hover:bg-gray-100" onClick={() => openEdit(d)}>Edit</Button>
                       <Button size="sm" variant="destructive" onClick={() => remove(d.id)}>Delete</Button>
                     </div>
                   </td>
@@ -336,6 +371,7 @@ export default function AdminDoctorsPage() {
         </div>
 
         <ModalFooter className="sticky bottom-0 bg-white">
+          <Button variant="ghost" onClick={fillWithDummy} className="text-blue-600 hover:bg-blue-100">Fill dummy</Button>
           <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="text-blue-600 hover:bg-blue-100">Cancel</Button>
           <Button variant="primary" onClick={submit} isLoading={isLoading} className="!bg-blue-600 !text-white hover:!bg-blue-700">
             {mode === 'create' ? 'Create' : 'Save'}
