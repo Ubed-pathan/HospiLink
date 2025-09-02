@@ -4,7 +4,7 @@
  */
 
 import api from './api';
-import { User, Doctor, Department, Appointment } from './types';
+import { User, Doctor, Department, Appointment, AppointmentDtoForAdminDashboard } from './types';
 import type { DoctorRegisterFormData, AdminUserFormData } from './validations';
 
 // Authentication APIs
@@ -417,5 +417,15 @@ export const reviewAPI = {
   deleteReview: async (reviewId: string) => {
     const response = await api.delete(`/reviews/${reviewId}`);
     return response.data;
+  },
+};
+
+// Admin Appointments Dashboard API (backend-provided route)
+export const adminAppointmentAPI = {
+  // Returns a list of appointments suitable for admin dashboard metrics
+  getAllForDashboard: async (): Promise<AppointmentDtoForAdminDashboard[]> => {
+    const response = await api.get<AppointmentDtoForAdminDashboard[]>('/appointment/getAllAppointments');
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr;
   },
 };

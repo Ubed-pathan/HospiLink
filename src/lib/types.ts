@@ -264,3 +264,20 @@ export interface AuthResponse {
   refreshToken: string;
   expiresAt: string;
 }
+
+// Backend DTOs
+// Lightweight appointment DTO used by Admin Dashboard endpoint
+export interface AppointmentDtoForAdminDashboard {
+  id: string;
+  doctorId?: string;
+  patientId?: string;
+  departmentId?: string;
+  // ISO date-time string, e.g., "2025-01-31T10:30:00Z"
+  appointmentTime?: string;
+  // Some backends may use this alternate name
+  appointmentDateTime?: string;
+  // Backend may send various casings/enums; keep it flexible here
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

@@ -5,9 +5,13 @@ import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
 import { mockAppointments, mockDoctors, mockDepartments } from '@/lib/mockData';
-import { adminUserAPI, doctorAPI } from '@/lib/api-services';
+import { adminUserAPI, doctorAPI, adminAppointmentAPI } from '@/lib/api-services';
 
 export default function AdminHome() {
+  const now = React.useMemo(() => new Date(), []);
+  const [apptCounts, setApptCounts] = React.useState<{ total: number; month: number; today: number } | null>(null);
+  const [loadingAppts, setLoadingAppts] = React.useState(false);
+  const [apptsError, setApptsError] = React.useState<string | null>(null);
   const [doctorCount, setDoctorCount] = React.useState<number | null>(null);
   const [userCount, setUserCount] = React.useState<number | null>(null);
   const [loadingCounts, setLoadingCounts] = React.useState(false);
@@ -37,8 +41,48 @@ export default function AdminHome() {
     return () => { active = false; };
   }, []);
 
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoadingAppts(true);
+      setApptsError(null);
+      try {
+        const list = await adminAppointmentAPI.getAllForDashboard();
+        if (!active) return;
+        const total = Array.isArray(list) ? list.length : 0;
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        const day = now.getDate();
+        const parseDate = (primary?: string, alt1?: string, alt2?: string) => {
+          const src = primary || alt1 || alt2;
+          return src ? new Date(src) : null;
+        };
+        const isSameYM = (d: Date) => d.getFullYear() === y && d.getMonth() === m;
+        const isSameYMD = (d: Date) => isSameYM(d) && d.getDate() === day;
+        let month = 0;
+        let today = 0;
+        for (const a of list) {
+          const d = parseDate(a.appointmentTime, a.appointmentDateTime, a.createdAt);
+          if (!d || isNaN(d.getTime())) continue;
+          if (isSameYM(d)) month += 1;
+          if (isSameYMD(d)) today += 1;
+        }
+        setApptCounts({ total, month, today });
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load appointments';
+        setApptsError(msg);
+      } finally {
+        if (active) setLoadingAppts(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [now]);
+
   const kpis = [
-    { label: 'Total Appointments', value: 1247, trend: [89,95,108,112,98,105,118,124,116,132,128,135] },
+    { label: 'Total Appointments', value: apptCounts?.total ?? (loadingAppts ? '...' : 0), trend: [89,95,108,112,98,105,118,124,116,132,128,135] },
+    { label: 'This Month', value: apptCounts?.month ?? (loadingAppts ? '...' : 0), trend: [12,18,22,28,19,24] },
+    { label: 'Today', value: apptCounts?.today ?? (loadingAppts ? '...' : 0), trend: [3,5,4,6] },
     { label: 'Total Doctors', value: doctorCount ?? '—', trend: [60,62,65,68,70,72,75,78,80,83,85,86] },
     { label: 'Registered Users', value: userCount ?? '—', trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
     { label: 'Avg Rating', value: '4.7', trend: [4.3,4.4,4.5,4.6,4.6,4.7] },
@@ -50,6 +94,11 @@ export default function AdminHome() {
         {countsError && (
           <div className="sm:col-span-2 lg:col-span-4 p-3 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded text-sm">
             {countsError}
+          </div>
+        )}
+        {apptsError && (
+          <div className="sm:col-span-2 lg:col-span-4 p-3 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded text-sm">
+            {apptsError}
           </div>
         )}
         {kpis.map((k) => (
