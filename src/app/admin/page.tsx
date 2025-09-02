@@ -1,26 +1,61 @@
-'use client';
+"use client";
 
 import React from 'react';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
 import { mockAppointments, mockDoctors, mockDepartments } from '@/lib/mockData';
+import { adminUserAPI, doctorAPI } from '@/lib/api-services';
 
 export default function AdminHome() {
+  const [doctorCount, setDoctorCount] = React.useState<number | null>(null);
+  const [userCount, setUserCount] = React.useState<number | null>(null);
+  const [loadingCounts, setLoadingCounts] = React.useState(false);
+  const [countsError, setCountsError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoadingCounts(true);
+      setCountsError(null);
+      try {
+        const [doctors, users] = await Promise.all([
+          doctorAPI.getAllDoctors().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Doctors fetch failed'); }),
+          adminUserAPI.list().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Users fetch failed'); }),
+        ]);
+        if (!active) return;
+        setDoctorCount(Array.isArray(doctors) ? doctors.length : 0);
+        setUserCount(Array.isArray(users) ? users.length : 0);
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load counts';
+        setCountsError(msg);
+      } finally {
+        if (active) setLoadingCounts(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
   const kpis = [
     { label: 'Total Appointments', value: 1247, trend: [89,95,108,112,98,105,118,124,116,132,128,135] },
-    { label: 'Total Doctors', value: 86, trend: [60,62,65,68,70,72,75,78,80,83,85,86] },
-  { label: 'Registered Users', value: 5230, trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
+    { label: 'Total Doctors', value: doctorCount ?? '—', trend: [60,62,65,68,70,72,75,78,80,83,85,86] },
+    { label: 'Registered Users', value: userCount ?? '—', trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
     { label: 'Avg Rating', value: '4.7', trend: [4.3,4.4,4.5,4.6,4.6,4.7] },
   ];
 
   return (
   <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {countsError && (
+          <div className="sm:col-span-2 lg:col-span-4 p-3 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded text-sm">
+            {countsError}
+          </div>
+        )}
         {kpis.map((k) => (
           <div key={k.label} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="text-sm text-gray-500">{k.label}</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{k.value}</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">{loadingCounts && (k.label === 'Total Doctors' || k.label === 'Registered Users') ? '...' : k.value}</div>
             <div className="mt-3">
               {typeof k.trend[0] === 'number' && k.trend.length > 8 ? (
                 <MiniBarChart values={k.trend as number[]} height={48} />
