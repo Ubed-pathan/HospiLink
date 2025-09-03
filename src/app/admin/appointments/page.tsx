@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { CalendarDays, Search } from 'lucide-react';
-import { adminAppointmentAPI } from '@/lib/api-services';
-import type { AppointmentDtoForAdminDashboard } from '@/lib/types';
+import { adminAppointmentAPI, doctorAPI } from '@/lib/api-services';
+import type { AppointmentDtoForAdminDashboard, Doctor } from '@/lib/types';
 
 type Row = {
   id: string;
@@ -40,19 +40,58 @@ export default function AdminAppointmentsPage() {
       setLoading(true);
       setError(null);
       try {
-        const list = await adminAppointmentAPI.getAllForDashboard();
+        const [list, docs] = await Promise.all([
+          adminAppointmentAPI.getAllForDashboard(),
+          doctorAPI.getAllDoctors().catch(() => [] as Doctor[]),
+        ]);
         if (!active) return;
-        const mapped: Row[] = (list || []).map((a: AppointmentDtoForAdminDashboard) => ({
-          id: a.appointmentId || a.id || '',
-          time: a.appointmentTime ?? a.appointmentDateTime ?? a.createdAt ?? null,
-          status: normalizeStatus(a.appointmentStatus ?? a.AppointmentStatus ?? a.status),
-          patientName: a.usersFullName,
-          patientEmail: a.usersEmail,
-          doctorName: a.doctorsFullName,
-          doctorEmail: a.doctorsEmail,
-          reason: a.reason,
-          createdAt: a.createdAt ?? null,
-        }));
+        const isHex24 = (s: string) => !!s && /^[a-fA-F0-9]{24}$/.test(s.trim());
+        const findDoctor = (a: AppointmentDtoForAdminDashboard): Doctor | undefined => {
+          if (a.doctorId) {
+            const byId = docs.find((d) => d.id === a.doctorId);
+            if (byId) return byId;
+          }
+          if (a.doctorsEmail) {
+            const byEmail = docs.find((d) => (d.email || '').toLowerCase() === a.doctorsEmail!.toLowerCase());
+            if (byEmail) return byEmail;
+          }
+          if (a.doctorsFullName) {
+            const needle = a.doctorsFullName.replace(/^dr\.?\s+/i, '').trim().toLowerCase();
+            const byName = docs.find((d) => (d.name || '').trim().toLowerCase() === needle || (`dr. ${d.name}`.toLowerCase() === a.doctorsFullName!.toLowerCase()));
+            if (byName) return byName;
+          }
+          return undefined;
+        };
+        const deriveFromEmail = (email?: string) => {
+          if (!email) return '';
+          const local = email.split('@')[0] || '';
+          const parts = local.split(/[._-]+/).filter(Boolean);
+          if (parts.length === 0) return '';
+          return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+        };
+        const looksLikeNaturalName = (s?: string) => !!s && !isHex24(s) && /[A-Za-z]/.test(s) && /\s|\./.test(s);
+        const mapped: Row[] = (list || []).map((a: AppointmentDtoForAdminDashboard) => {
+          const doc = findDoctor(a);
+          const emailName = deriveFromEmail(a.doctorsEmail);
+          const safeDoctorName = doc
+            ? `Dr. ${doc.name}`
+            : looksLikeNaturalName(a.doctorsFullName)
+              ? a.doctorsFullName!
+              : emailName
+                ? `Dr. ${emailName}`
+                : 'Doctor';
+          return {
+            id: a.appointmentId || a.id || '',
+            time: a.appointmentTime ?? a.appointmentDateTime ?? a.createdAt ?? null,
+            status: normalizeStatus(a.appointmentStatus ?? a.AppointmentStatus ?? a.status),
+            patientName: a.usersFullName,
+            patientEmail: a.usersEmail,
+            doctorName: safeDoctorName,
+            doctorEmail: a.doctorsEmail,
+            reason: a.reason,
+            createdAt: a.createdAt ?? null,
+          } as Row;
+        });
         setRows(mapped);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Failed to load appointments';

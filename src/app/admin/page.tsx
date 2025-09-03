@@ -33,7 +33,7 @@ export default function AdminHome() {
         if (!active) return;
         setDoctors(Array.isArray(docs) ? docs : []);
         setAppointments(Array.isArray(appts) ? appts : []);
-      } catch (_err: unknown) {
+  } catch {
         if (!active) return;
         // Show error only if both fail
         setDoctors([]);
@@ -228,7 +228,28 @@ export default function AdminHome() {
                           timeStr = `${hrs12}:${mins} ${am ? 'am' : 'pm'}`;
                         }
                       }
-                      const docName = a.doctorsFullName || (doc ? `Dr. ${doc.name}` : '—');
+                      // Resolve a reliable doctor display name (avoid showing IDs)
+                      const isHex24 = (s: string) => /^[a-fA-F0-9]{24}$/.test(s.trim());
+                      const deriveFromEmail = (email?: string) => {
+                        if (!email) return '';
+                        const local = email.split('@')[0] || '';
+                        const parts = local.split(/[._-]+/).filter(Boolean);
+                        if (parts.length === 0) return '';
+                        return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+                      };
+                      // Try to resolve doctor by email if still not found
+                      if (!doc && a.doctorsEmail) {
+                        doc = doctors.find((d) => (d.email || '').toLowerCase() === a.doctorsEmail!.toLowerCase());
+                      }
+                      const emailName = deriveFromEmail(a.doctorsEmail);
+                      const looksLikeNaturalName = (s?: string) => !!s && !isHex24(s) && /[A-Za-z]/.test(s) && /\s|\./.test(s);
+                      const doctorDisplayName: string = doc
+                        ? `Dr. ${doc.name}`
+                        : looksLikeNaturalName(a.doctorsFullName)
+                          ? a.doctorsFullName!
+                          : emailName
+                            ? `Dr. ${emailName}`
+                            : 'Doctor';
                       const statusRaw = a.appointmentStatus || a.AppointmentStatus || a.status || '';
                       const s = statusRaw.toString().toUpperCase();
                       const cls = s.includes('COMPLETE')
@@ -242,7 +263,7 @@ export default function AdminHome() {
                         <tr key={a.appointmentId || a.id} className="hover:bg-gray-50/50">
                           <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{dateStr}</td>
                           <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{timeStr}</td>
-                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{docName}</td>
+                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doctorDisplayName}</td>
                           <td className="py-2.5 pr-4 max-w-[220px]">
                             <div className="text-gray-900 text-xs sm:text-sm truncate" title={a.reason || ''}>{a.reason || '—'}</div>
                           </td>
