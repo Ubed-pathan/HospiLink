@@ -5,8 +5,8 @@ import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
 import { mockDoctors } from '@/lib/mockData';
-import { adminUserAPI, doctorAPI, adminAppointmentAPI, departmentAPI } from '@/lib/api-services';
-import { AppointmentDtoForAdminDashboard, Department } from '@/lib/types';
+import { adminUserAPI, doctorAPI, adminAppointmentAPI } from '@/lib/api-services';
+import { AppointmentDtoForAdminDashboard, Doctor } from '@/lib/types';
 
 export default function AdminHome() {
   const now = React.useMemo(() => new Date(), []);
@@ -19,30 +19,25 @@ export default function AdminHome() {
   const [countsError, setCountsError] = React.useState<string | null>(null);
 
   // Top Departments state
-  const [departments, setDepartments] = React.useState<Department[] | null>(null);
-  const [loadingDepartments, setLoadingDepartments] = React.useState(false);
-  const [departmentsError, setDepartmentsError] = React.useState<string | null>(null);
   const [appointments, setAppointments] = React.useState<AppointmentDtoForAdminDashboard[] | null>(null);
-  // Fetch departments and appointments for Top Departments
+  const [doctors, setDoctors] = React.useState<Doctor[] | null>(null);
+  // Fetch doctors and appointments for Top Departments
   React.useEffect(() => {
     let active = true;
     (async () => {
-      setLoadingDepartments(true);
-      setDepartmentsError(null);
       try {
-        const [deps, appts] = await Promise.all([
-          departmentAPI.getAllDepartments().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Departments fetch failed'); }),
+        const [docs, appts] = await Promise.all([
+          doctorAPI.getAllDoctors().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Doctors fetch failed'); }),
           adminAppointmentAPI.getAllForDashboard().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Appointments fetch failed'); })
         ]);
         if (!active) return;
-  setDepartments(Array.isArray(deps) ? deps : []);
-  setAppointments(Array.isArray(appts) ? appts : []);
-      } catch (e: unknown) {
+        setDoctors(Array.isArray(docs) ? docs : []);
+        setAppointments(Array.isArray(appts) ? appts : []);
+      } catch (_err: unknown) {
         if (!active) return;
-        const msg = e instanceof Error ? e.message : 'Failed to load departments';
-        setDepartmentsError(msg);
-      } finally {
-        if (active) setLoadingDepartments(false);
+        // Show error only if both fail
+        setDoctors([]);
+        setAppointments([]);
       }
     })();
     return () => { active = false; };
@@ -157,30 +152,30 @@ export default function AdminHome() {
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Top Departments</h2>
-          {departmentsError && (
-            <div className="p-2 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded text-sm mb-2">{departmentsError}</div>
-          )}
           <div className="space-y-3">
-            {loadingDepartments ? (
+            {(!doctors || !appointments) ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              departments && appointments ? (
-                departments
-                  .map((d) => ({
-                    ...d,
-                    count: appointments.filter((a) => a.departmentId === d.id).length
-                  }))
-                  .sort((a, b) => b.count - a.count)
-                  .slice(0, 3)
-                  .map((d) => (
-                    <div key={d.id} className="flex items-center justify-between">
-                      <span className="text-gray-700">{d.name}</span>
-                      <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{d.count}</span>
-                    </div>
-                  ))
-              ) : (
-                <div className="text-gray-500">No departments found.</div>
-              )
+              (() => {
+                // Build department name list from doctors
+                const deptNames = Array.from(new Set(doctors.map(d => (d.department || d.specialization || '').trim()).filter(Boolean)));
+                // Count appointments per department name
+                const deptCounts = deptNames.map(name => ({
+                  name,
+                  count: appointments.filter(a => {
+                    const doc = doctors.find(d => d.id === a.doctorId);
+                    const docDept = (doc?.department || doc?.specialization || '').trim();
+                    return docDept === name;
+                  }).length
+                }));
+                // Sort and show top 3
+                return deptCounts.sort((a, b) => b.count - a.count).slice(0, 3).map(d => (
+                  <div key={d.name} className="flex items-center justify-between">
+                    <span className="text-gray-700">{d.name}</span>
+                    <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{d.count}</span>
+                  </div>
+                ));
+              })()
             )}
           </div>
         </div>
@@ -192,7 +187,7 @@ export default function AdminHome() {
     <h2 className="font-semibold text-gray-900">Recent Appointments</h2>
     <Link href="/admin/appointments" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">View all</Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-gray-600 border-b">
@@ -204,22 +199,23 @@ export default function AdminHome() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {appointments && departments
-                  ? appointments.slice(0, 6).map((a) => {
-                      const doc = mockDoctors.find((d) => d.id === a.doctorId);
-                      const dept = departments.find((d) => d.id === (a.departmentId || doc?.departmentId));
+                {appointments && doctors
+                  ? appointments.map((a) => {
+                      const doc = doctors.find((d) => d.id === a.doctorId);
                       // Parse date/time
                       const dateObj = a.appointmentTime || a.appointmentDateTime || a.createdAt;
                       const dateStr = dateObj ? new Date(dateObj).toLocaleDateString() : '-';
                       const timeStr = dateObj ? new Date(dateObj).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                      // Use doctor's department or specialization
+                      const deptName = doc?.department || doc?.specialization || '-';
                       return (
                         <tr key={a.id} className="hover:bg-gray-50/50">
                           <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{dateStr}</td>
                           <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{timeStr}</td>
                           <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doc ? `Dr. ${doc.name}` : '-'}</td>
                           <td className="py-2.5 pr-4 whitespace-nowrap">
-                            {dept?.name ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{dept.name}</span>
+                            {deptName !== '-' ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{deptName}</span>
                             ) : (
                               '-'
                             )}
