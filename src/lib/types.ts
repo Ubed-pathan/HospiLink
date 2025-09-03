@@ -268,7 +268,8 @@ export interface AuthResponse {
 // Backend DTOs
 // Lightweight appointment DTO used by Admin Dashboard endpoint
 export interface AppointmentDtoForAdminDashboard {
-  id: string;
+  id?: string;
+  appointmentId?: string;
   doctorId?: string;
   patientId?: string;
   departmentId?: string;
@@ -278,6 +279,14 @@ export interface AppointmentDtoForAdminDashboard {
   appointmentDateTime?: string;
   // Backend may send various casings/enums; keep it flexible here
   status?: string;
+  AppointmentStatus?: string;
+  appointmentStatus?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Enriched fields provided for admin dashboard list
+  usersFullName?: string;
+  usersEmail?: string;
+  doctorsFullName?: string;
+  doctorsEmail?: string;
+  reason?: string;
 }
