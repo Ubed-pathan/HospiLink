@@ -4,7 +4,6 @@ import React from 'react';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
-import { mockDoctors } from '@/lib/mockData';
 import { adminUserAPI, doctorAPI, adminAppointmentAPI } from '@/lib/api-services';
 import { AppointmentDtoForAdminDashboard, Doctor } from '@/lib/types';
 
@@ -285,21 +284,33 @@ export default function AdminHome() {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Top Doctors</h2>
           <div className="space-y-3">
-            {mockDoctors
-              .slice(0, 5)
-              .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-              .map((d) => (
-                <div key={d.id} className="flex items-center justify-between">
-                  <div>
-                    <div className="text-gray-900 font-medium">Dr. {d.name}</div>
-                    <div className="text-xs text-gray-500">{d.specialization}</div>
-                  </div>
-      <div className="text-sm text-blue-700 bg-blue-50 px-2 py-0.5 rounded">⭐ {d.rating?.toFixed ? d.rating.toFixed(1) : d.rating}</div>
-                </div>
-              ))}
+            {(!doctors || !appointments) ? (
+              <div className="text-gray-500">Loading...</div>
+            ) : doctors.length === 0 ? (
+              <div className="text-gray-500">No doctors</div>
+            ) : (
+              (() => {
+                const counts = doctors.map((d) => ({
+                  doctor: d,
+                  count: appointments.filter((a) => a.doctorId === d.id).length,
+                }));
+                return counts
+                  .sort((a, b) => b.count - a.count || (b.doctor.rating || 0) - (a.doctor.rating || 0))
+                  .slice(0, 5)
+                  .map(({ doctor: d, count }) => (
+                    <div key={d.id} className="flex items-center justify-between">
+                      <div>
+                        <div className="text-gray-900 font-medium">Dr. {d.name}</div>
+                        <div className="text-xs text-gray-500">{d.specialization || '—'}</div>
+                      </div>
+                      <div className="text-sm text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{count} appts</div>
+                    </div>
+                  ));
+              })()
+            )}
           </div>
           <div className="mt-4">
-    <Link href="/admin/doctors" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">Manage doctors</Link>
+            <Link href="/admin/doctors" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">Manage doctors</Link>
           </div>
         </div>
       </div>
