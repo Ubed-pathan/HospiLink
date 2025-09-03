@@ -194,36 +194,64 @@ export default function AdminHome() {
                   <th className="py-2.5 pr-4">Date</th>
                   <th className="py-2.5 pr-4">Time</th>
                   <th className="py-2.5 pr-4">Doctor</th>
-                  <th className="py-2.5 pr-4">Department</th>
+                  <th className="py-2.5 pr-4">Reason</th>
                   <th className="py-2.5 pr-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {appointments && doctors
                   ? appointments.map((a) => {
-                      const doc = doctors.find((d) => d.id === a.doctorId);
-                      // Parse date/time
-                      const dateObj = a.appointmentTime || a.appointmentDateTime || a.createdAt;
-                      const dateStr = dateObj ? new Date(dateObj).toLocaleDateString() : '-';
-                      const timeStr = dateObj ? new Date(dateObj).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
-                      // Use doctor's department or specialization
-                      const deptName = doc?.department || doc?.specialization || '-';
+                      // Locate doctor by id; if missing, try by full name
+                      let doc: Doctor | undefined;
+                      if (a.doctorId) {
+                        doc = doctors.find((d) => d.id === a.doctorId);
+                      }
+                      if (!doc && a.doctorsFullName) {
+                        const name = a.doctorsFullName.replace(/^dr\.?\s+/i, '').trim().toLowerCase();
+                        doc = doctors.find((d) => (d.name || '').trim().toLowerCase() === name || (`dr. ${d.name}`.toLowerCase() === a.doctorsFullName!.toLowerCase()));
+                      }
+                      // Date/time formatting dd/MM/yyyy and hh:mm am/pm
+                      const dateSrc = a.appointmentTime || a.appointmentDateTime || a.createdAt;
+                      let dateStr = '—';
+                      let timeStr = '—';
+                      if (dateSrc) {
+                        const d = new Date(dateSrc);
+                        if (!isNaN(d.getTime())) {
+                          const dd = String(d.getDate()).padStart(2, '0');
+                          const mm = String(d.getMonth() + 1).padStart(2, '0');
+                          const yyyy = d.getFullYear();
+                          dateStr = `${dd}/${mm}/${yyyy}`;
+                          const hrs = d.getHours();
+                          const mins = String(d.getMinutes()).padStart(2, '0');
+                          const am = hrs < 12;
+                          const hrs12 = String(((hrs + 11) % 12) + 1).padStart(2, '0');
+                          timeStr = `${hrs12}:${mins} ${am ? 'am' : 'pm'}`;
+                        }
+                      }
+                      const docName = a.doctorsFullName || (doc ? `Dr. ${doc.name}` : '—');
+                      const statusRaw = a.appointmentStatus || a.AppointmentStatus || a.status || '';
+                      const s = statusRaw.toString().toUpperCase();
+                      const cls = s.includes('COMPLETE')
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : s.includes('CANCEL')
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : s.includes('CONFIRM') || s.includes('SCHEDULE')
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-gray-50 text-gray-700 border-gray-200';
                       return (
-                        <tr key={a.id} className="hover:bg-gray-50/50">
+                        <tr key={a.appointmentId || a.id} className="hover:bg-gray-50/50">
                           <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{dateStr}</td>
                           <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{timeStr}</td>
-                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doc ? `Dr. ${doc.name}` : '-'}</td>
-                          <td className="py-2.5 pr-4 whitespace-nowrap">
-                            {deptName !== '-' ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{deptName}</span>
-                            ) : (
-                              '-'
-                            )}
+                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{docName}</td>
+                          <td className="py-2.5 pr-4 max-w-[220px]">
+                            <div className="text-gray-900 text-xs sm:text-sm truncate" title={a.reason || ''}>{a.reason || '—'}</div>
                           </td>
                           <td className="py-2.5 pr-4">
-                            <span className={`px-2 py-0.5 rounded text-xs border ${a.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : a.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                              {a.status}
-                            </span>
+                            {s ? (
+                              <span className={`px-2 py-0.5 rounded text-xs border ${cls}`}>{s}</span>
+                            ) : (
+                              '—'
+                            )}
                           </td>
                         </tr>
                       );
