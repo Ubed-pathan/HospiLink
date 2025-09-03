@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { authState, themeState } from "@/lib/atoms";
-import { authAPI } from "@/lib/api-services";
+import { authAPI, userAPI } from "@/lib/api-services";
+import type { User } from "@/lib/types";
 
 export default function AdminSettingsPage() {
-  const { user } = useRecoilValue(authState);
-  const setTheme = useSetRecoilState(themeState);
+  // Local user state (avoid Recoil to prevent ReactCurrentDispatcher error)
+  const [user, setUser] = React.useState<User | null>(null);
   const [theme, setLocalTheme] = React.useState<'light' | 'dark'>(() => 'light');
   const [emailNotif, setEmailNotif] = React.useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
@@ -23,6 +22,9 @@ export default function AdminSettingsPage() {
   const [savedAt, setSavedAt] = React.useState<number | null>(null);
   const [pwForm, setPwForm] = React.useState({ current: '', next: '', confirm: '' });
   const [pwError, setPwError] = React.useState<string | null>(null);
+  const [profileForm, setProfileForm] = React.useState<{ name: string; email: string; phone?: string; address?: string }>({ name: '', email: '' });
+  const [savingProfile, setSavingProfile] = React.useState(false);
+  const [profileMsg, setProfileMsg] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // try read theme from DOM or localStorage
@@ -31,6 +33,32 @@ export default function AdminSettingsPage() {
       setLocalTheme(isDark ? 'dark' : 'light');
     }
   }, []);
+
+  // Load user profile safely on client
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const u = await userAPI.getProfile();
+        if (!active) return;
+        setUser(u);
+        setProfileForm({ name: u.name || '', email: u.email || '', phone: u.phone, address: u.address });
+      } catch {
+        if (!active) return;
+        setUser(null);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const applyTheme = (next: 'light' | 'dark') => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', next === 'dark');
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('hl:pref:theme', next);
+    }
+  };
 
   const initials = React.useMemo(() => {
     const n = (user?.name || '').trim();
@@ -49,8 +77,7 @@ export default function AdminSettingsPage() {
   const savePreferences = async () => {
     setSavingPrefs(true);
     try {
-      // theme
-      setTheme(theme);
+      // theme (apply directly on DOM and persist locally)
       if (typeof window !== 'undefined') {
         // persist basic prefs locally for demo
         window.localStorage.setItem('hl:pref:theme', theme);
@@ -62,6 +89,31 @@ export default function AdminSettingsPage() {
       setSavedAt(Date.now());
     } finally {
       setSavingPrefs(false);
+    }
+  };
+
+  const saveProfile = async () => {
+    setProfileMsg(null);
+    if (!profileForm.name?.trim()) {
+      setProfileMsg('Name is required');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const payload: Partial<User> = {
+        name: profileForm.name.trim(),
+        // Allow phone/address updates if provided
+        phone: profileForm.phone,
+        address: profileForm.address,
+      };
+      const updated = await userAPI.updateProfile(payload);
+      setUser(updated);
+      setProfileMsg('Profile updated');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to update profile';
+      setProfileMsg(msg);
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -90,32 +142,63 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
 
-      {/* Admin Information */}
+      {/* Profile */}
       <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile</h3>
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
             {initials}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             <div>
-              <div className="text-xs text-gray-500">Full name</div>
-              <div className="text-gray-900 font-medium">{user?.name || '-'}</div>
+              <label className="block text-sm font-medium text-gray-900">Full name</label>
+              <input
+                type="text"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                value={profileForm.name}
+                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+              />
             </div>
             <div>
-              <div className="text-xs text-gray-500">Email</div>
-              <div className="text-gray-900">{user?.email || '-'}</div>
+              <label className="block text-sm font-medium text-gray-900">Email</label>
+              <input
+                type="email"
+                disabled
+                className="mt-1 block w-full border border-gray-200 bg-gray-50 rounded-md px-3 py-2 text-sm text-gray-700"
+                value={profileForm.email}
+                readOnly
+              />
             </div>
             <div>
-              <div className="text-xs text-gray-500">Username</div>
-              <div className="text-gray-900">{username}</div>
+              <label className="block text-sm font-medium text-gray-900">Phone</label>
+              <input
+                type="tel"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                value={profileForm.phone || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+              />
             </div>
             <div>
-              <div className="text-xs text-gray-500">Roles</div>
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {(user?.roles?.length ? user.roles : [user?.role]).map((r) => (
-                  <span key={r} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 border border-gray-200 capitalize">{r}</span>
-                ))}
+              <label className="block text-sm font-medium text-gray-900">Address</label>
+              <input
+                type="text"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                value={profileForm.address || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+              />
+            </div>
+            <div className="md:col-span-2 flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                Roles:
+                <span className="ml-2">
+                  {(user?.roles?.length ? user.roles : [user?.role]).filter(Boolean).map((r) => (
+                    <span key={String(r)} className="inline-block mr-1 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 border border-gray-200 capitalize">{r}</span>
+                  ))}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={saveProfile} disabled={savingProfile} className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-black/85 disabled:opacity-60">{savingProfile ? 'Saving…' : 'Save profile'}</button>
+                {profileMsg && <span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{profileMsg}</span>}
               </div>
             </div>
           </div>
@@ -130,11 +213,11 @@ export default function AdminSettingsPage() {
             <div className="text-sm font-medium text-gray-900">Theme</div>
             <div className="mt-3 flex items-center gap-3">
               <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="theme" value="light" checked={theme==='light'} onChange={() => setLocalTheme('light')} />
+                <input type="radio" name="theme" value="light" checked={theme==='light'} onChange={() => { setLocalTheme('light'); applyTheme('light'); }} />
                 <span>Light</span>
               </label>
               <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="theme" value="dark" checked={theme==='dark'} onChange={() => setLocalTheme('dark')} />
+                <input type="radio" name="theme" value="dark" checked={theme==='dark'} onChange={() => { setLocalTheme('dark'); applyTheme('dark'); }} />
                 <span>Dark</span>
               </label>
             </div>
