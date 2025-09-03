@@ -4,8 +4,9 @@ import React from 'react';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import Link from 'next/link';
-import { mockAppointments, mockDoctors, mockDepartments } from '@/lib/mockData';
-import { adminUserAPI, doctorAPI, adminAppointmentAPI } from '@/lib/api-services';
+import { mockDoctors } from '@/lib/mockData';
+import { adminUserAPI, doctorAPI, adminAppointmentAPI, departmentAPI } from '@/lib/api-services';
+import { AppointmentDtoForAdminDashboard, Department } from '@/lib/types';
 
 export default function AdminHome() {
   const now = React.useMemo(() => new Date(), []);
@@ -16,6 +17,36 @@ export default function AdminHome() {
   const [userCount, setUserCount] = React.useState<number | null>(null);
   const [loadingCounts, setLoadingCounts] = React.useState(false);
   const [countsError, setCountsError] = React.useState<string | null>(null);
+
+  // Top Departments state
+  const [departments, setDepartments] = React.useState<Department[] | null>(null);
+  const [loadingDepartments, setLoadingDepartments] = React.useState(false);
+  const [departmentsError, setDepartmentsError] = React.useState<string | null>(null);
+  const [appointments, setAppointments] = React.useState<AppointmentDtoForAdminDashboard[] | null>(null);
+  // Fetch departments and appointments for Top Departments
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoadingDepartments(true);
+      setDepartmentsError(null);
+      try {
+        const [deps, appts] = await Promise.all([
+          departmentAPI.getAllDepartments().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Departments fetch failed'); }),
+          adminAppointmentAPI.getAllForDashboard().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Appointments fetch failed'); })
+        ]);
+        if (!active) return;
+  setDepartments(Array.isArray(deps) ? deps : []);
+  setAppointments(Array.isArray(appts) ? appts : []);
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load departments';
+        setDepartmentsError(msg);
+      } finally {
+        if (active) setLoadingDepartments(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   React.useEffect(() => {
     let active = true;
@@ -126,16 +157,31 @@ export default function AdminHome() {
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Top Departments</h2>
+          {departmentsError && (
+            <div className="p-2 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded text-sm mb-2">{departmentsError}</div>
+          )}
           <div className="space-y-3">
-            {mockDepartments.slice(0, 3).map((d) => {
-              const count = mockAppointments.filter((a) => a.departmentId === d.id).length;
-              return (
-                <div key={d.id} className="flex items-center justify-between">
-                  <span className="text-gray-700">{d.name}</span>
-          <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{count}</span>
-                </div>
-              );
-            })}
+            {loadingDepartments ? (
+              <div className="text-gray-500">Loading...</div>
+            ) : (
+              departments && appointments ? (
+                departments
+                  .map((d) => ({
+                    ...d,
+                    count: appointments.filter((a) => a.departmentId === d.id).length
+                  }))
+                  .sort((a, b) => b.count - a.count)
+                  .slice(0, 3)
+                  .map((d) => (
+                    <div key={d.id} className="flex items-center justify-between">
+                      <span className="text-gray-700">{d.name}</span>
+                      <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{d.count}</span>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-gray-500">No departments found.</div>
+              )
+            )}
           </div>
         </div>
       </div>
@@ -158,29 +204,35 @@ export default function AdminHome() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {mockAppointments.slice(0, 6).map((a) => {
-                  const doc = mockDoctors.find((d) => d.id === a.doctorId);
-                  const dept = mockDepartments.find((d) => d.id === (a.departmentId || doc?.departmentId));
-                  return (
-                    <tr key={a.id} className="hover:bg-gray-50/50">
-                      <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{a.date}</td>
-                      <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{a.time || a.timeSlot || '-'}</td>
-                      <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doc ? `Dr. ${doc.name}` : '-'}</td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap">
-                        {dept?.name ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{dept.name}</span>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4">
-        <span className={`px-2 py-0.5 rounded text-xs border ${a.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : a.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {appointments && departments
+                  ? appointments.slice(0, 6).map((a) => {
+                      const doc = mockDoctors.find((d) => d.id === a.doctorId);
+                      const dept = departments.find((d) => d.id === (a.departmentId || doc?.departmentId));
+                      // Parse date/time
+                      const dateObj = a.appointmentTime || a.appointmentDateTime || a.createdAt;
+                      const dateStr = dateObj ? new Date(dateObj).toLocaleDateString() : '-';
+                      const timeStr = dateObj ? new Date(dateObj).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                      return (
+                        <tr key={a.id} className="hover:bg-gray-50/50">
+                          <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{dateStr}</td>
+                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{timeStr}</td>
+                          <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{doc ? `Dr. ${doc.name}` : '-'}</td>
+                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                            {dept?.name ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{dept.name}</span>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <span className={`px-2 py-0.5 rounded text-xs border ${a.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : a.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                              {a.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : null}
               </tbody>
             </table>
           </div>

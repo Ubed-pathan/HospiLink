@@ -11,16 +11,38 @@ import { Search, Star, Clock, Calendar } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { Doctor, Department } from '@/lib/types';
-import { mockDepartments } from '@/lib/mockData';
-import { doctorAPI } from '@/lib/api-services';
+import { doctorAPI, departmentAPI } from '@/lib/api-services';
 
 export default function DoctorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [departmentsError, setDepartmentsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoadingDepartments(true);
+      setDepartmentsError(null);
+      try {
+        const deps = await departmentAPI.getAllDepartments();
+        if (!active) return;
+        setDepartments(Array.isArray(deps) ? deps : []);
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load departments';
+        setDepartmentsError(msg);
+      } finally {
+        if (active) setLoadingDepartments(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -49,23 +71,22 @@ export default function DoctorsPage() {
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doctor: Doctor) => {
       const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (doctor.specialization ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+        (doctor.specialization ?? '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDepartment = !selectedDepartment || doctor.departmentId === selectedDepartment ||
         (() => {
-          const dept = mockDepartments.find((d) => d.id === selectedDepartment);
+          const dept = departments.find((d) => d.id === selectedDepartment);
           if (!dept) return false;
           const spec = (doctor.specialization || doctor.specialty || '').toLowerCase();
           return spec.includes(dept.name.toLowerCase());
         })();
-      const matchesLocation = !selectedLocation || selectedLocation === 'All Locations' || 
-                             doctor.location === selectedLocation;
-      
+      const matchesLocation = !selectedLocation || selectedLocation === 'All Locations' ||
+        doctor.location === selectedLocation;
       return matchesSearch && matchesDepartment && matchesLocation;
     });
-  }, [searchTerm, selectedDepartment, selectedLocation, doctors]);
+  }, [searchTerm, selectedDepartment, selectedLocation, doctors, departments]);
 
   const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
-    const department = mockDepartments.find((d: Department) => d.id === doctor.departmentId);
+    const department = departments.find((d: Department) => d.id === doctor.departmentId);
     const synth = (() => {
       // Generate deterministic pseudo-random rating/reviews based on id
       let hash = 0;
@@ -215,7 +236,7 @@ export default function DoctorsPage() {
                     className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   >
                     <option value="">All Departments</option>
-                    {mockDepartments.map((dept: Department) => (
+                    {departments.map((dept: Department) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
                       </option>
