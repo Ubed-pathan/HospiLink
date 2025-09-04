@@ -13,7 +13,7 @@ import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { AppointmentFormData, Doctor } from '@/lib/types';
 import { getDepartmentById, mockAppointments } from '@/lib/mockData';
-import { doctorAPI, authAPI, appointmentAPI } from '@/lib/api-services';
+import { doctorAPI, authAPI, userAPI, appointmentAPI } from '@/lib/api-services';
 
 type BookingStep = 'doctor-selection' | 'date-time' | 'details' | 'confirmation';
 
@@ -38,6 +38,7 @@ function AppointmentPageInner() {
   const [me, setMe] = useState<{ id?: string; name?: string; email?: string } | null>(null);
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
+  const [emailOverride, setEmailOverride] = useState('');
 
   useEffect(() => {
     // Load current user quickly from loadOnRefresh
@@ -55,6 +56,13 @@ function AppointmentPageInner() {
     })();
     return () => { active = false; };
   }, []);
+
+  // Keep emailOverride in sync when we learn the user's email
+  useEffect(() => {
+    const em = me?.email || '';
+    // Only set if empty to avoid clobbering user edits
+    if (!emailOverride && em) setEmailOverride(em);
+  }, [me, emailOverride]);
 
   // Load doctors from backend
   useEffect(() => {
@@ -401,6 +409,10 @@ function AppointmentPageInner() {
         <h2 className="text-2xl font-bold text-gray-900">Appointment Details</h2>
       </div>
 
+      {bookError && (
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm" role="alert">{bookError}</div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Symptoms / Reason for Visit *
@@ -413,6 +425,22 @@ function AppointmentPageInner() {
           placeholder="Please describe your symptoms or reason for the appointment..."
         />
       </div>
+
+      {/* Ask for email if we don't have it from auth */}
+      {!(me?.email) && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Your Email (required)
+          </label>
+          <input
+            type="email"
+            value={emailOverride}
+            onChange={(e) => setEmailOverride(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -428,11 +456,69 @@ function AppointmentPageInner() {
       </div>
 
       <button
-        onClick={() => setCurrentStep('confirmation')}
-        disabled={!formData.symptoms.trim()}
+        onClick={async () => {
+          if (!selectedDoctor || !formData.date || !formData.time) {
+            setBookError('Please select a doctor, date and time.');
+            return;
+          }
+          try {
+            setBookError(null);
+            setBooking(true);
+            // Ensure we have current user; lazy load if missing
+            let user = me;
+            if (!user) {
+              try {
+                const r = await authAPI.loadOnRefresh();
+                user = r?.user || r || null;
+                setMe(user);
+              } catch {
+                user = null;
+              }
+            }
+            if (!user?.id) {
+              setBookError('You must be signed in to book an appointment.');
+              setBooking(false);
+              return;
+            }
+            // Ensure email is present; fallback to profile endpoint or use override
+            let userEmail = (emailOverride || '').trim() || user.email || '';
+            if (!userEmail) {
+              try {
+                const profile = await userAPI.getProfile();
+                userEmail = profile?.email || '';
+                // also populate name from profile if missing
+                if (!user.name && profile?.name) user = { ...user, name: profile.name };
+              } catch {
+                // ignore, will validate below
+              }
+            }
+            if (!userEmail || !userEmail.includes('@')) {
+              setBookError('Your account email is missing. Please update your email in Settings before booking.');
+              setBooking(false);
+              return;
+            }
+            const appointmentTime = `${formData.date}T${formData.time}:00`;
+            const reason = (formData.symptoms || 'Consultation').slice(0, 250);
+            await appointmentAPI.bookAppointmentV2({
+              appointmentTime,
+              userId: String(user.id),
+              usersFullName: (user.name || userEmail.split('@')[0] || 'Patient').trim(),
+              usersEmail: userEmail,
+              doctorId: selectedDoctor.id,
+              reason,
+            });
+            setCurrentStep('confirmation');
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Failed to book appointment';
+            setBookError(msg);
+          } finally {
+            setBooking(false);
+          }
+        }}
+        disabled={!formData.symptoms.trim() || booking}
         className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Confirm Appointment
+        {booking ? 'Booking…' : 'Confirm Appointment'}
       </button>
     </div>
   );
@@ -461,9 +547,6 @@ function AppointmentPageInner() {
         </div>
       </div>
 
-      {bookError && (
-        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm max-w-md mx-auto" role="alert">{bookError}</div>
-      )}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link
           href="/portal"
@@ -471,38 +554,12 @@ function AppointmentPageInner() {
         >
           Go to Patient Portal
         </Link>
-        <button
-          onClick={async () => {
-            if (!selectedDoctor || !formData.date || !formData.time || !me?.id) {
-              setBookError('Missing required booking details.');
-              return;
-            }
-            setBookError(null);
-            setBooking(true);
-            try {
-              // Build ISO local date-time string
-              const appointmentTime = `${formData.date}T${formData.time}:00`;
-              await appointmentAPI.bookAppointmentV2({
-                appointmentTime,
-                userId: me.id,
-                usersFullName: me.name || me.email?.split('@')[0] || 'Patient',
-                usersEmail: me.email || '',
-                doctorId: selectedDoctor.id,
-                reason: formData.symptoms || 'Consultation',
-              });
-              window.location.href = '/portal';
-            } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : 'Failed to book appointment';
-              setBookError(msg);
-            } finally {
-              setBooking(false);
-            }
-          }}
-          disabled={booking}
-          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-60"
+        <Link
+          href="/appointment"
+          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
         >
-          {booking ? 'Booking…' : 'Confirm & Book'}
-        </button>
+          Book Another Appointment
+        </Link>
       </div>
     </div>
   );
