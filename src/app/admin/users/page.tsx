@@ -8,7 +8,7 @@ import { adminUserAPI } from '@/lib/api-services';
 import type { User } from '@/lib/types';
 import { z } from 'zod';
 import { adminUserSchema, type AdminUserFormData } from '@/lib/validations';
-import { User as UserIcon, Mail, Phone, IdCard, Lock, Search as SearchIcon } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, IdCard, Search as SearchIcon } from 'lucide-react';
 
 type Mode = 'create' | 'edit';
 
@@ -31,7 +31,7 @@ export default function AdminUsersPage() {
   const empty: AdminUserFormData = { name: '', username: '', email: '', phoneNumber: '', role: 'doctor', password: '' };
   const [form, setForm] = useState<AdminUserFormData>(empty);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [roleFilter, setRoleFilter] = useState<'all' | 'doctor' | 'admin'>('all');
+  // We now always show only admins
 
   const load = async () => {
     setIsLoading(true);
@@ -53,21 +53,13 @@ export default function AdminUsersPage() {
     const matchesQuery = (u: User) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.role || '').toLowerCase().includes(q);
     const matchesRole = (u: User) => {
       const roles = (u.roles && u.roles.length ? u.roles : [u.role]) as Array<'patient' | 'doctor' | 'admin'>;
-      // Always exclude users that are only 'patient'
-      if (roles.length === 1 && roles[0] === 'patient') return false;
-      if (roleFilter === 'all') return true;
-      return roles.includes(roleFilter);
+      // Only show users that have admin role
+      return roles.includes('admin');
     };
     return users.filter((u) => matchesQuery(u) && matchesRole(u));
-  }, [users, search, roleFilter]);
+  }, [users, search]);
 
-  const openCreate = () => {
-    setMode('create');
-    setEditingId(null);
-    setForm(empty);
-    setFormErrors({});
-    setIsOpen(true);
-  };
+  // Creation of users is disabled on this view
   const openEdit = (u: User) => {
     setMode('edit');
     setEditingId(u.id);
@@ -77,6 +69,12 @@ export default function AdminUsersPage() {
   };
 
   const validate = (data: AdminUserFormData) => {
+    // For create, keep full validation; for edit, only require name
+    if (mode === 'edit') {
+      const nameOk = !!data.name && data.name.trim().length > 0;
+      if (!nameOk) setFormErrors({ name: 'Name is required' }); else setFormErrors({});
+      return nameOk;
+    }
     try {
       adminUserSchema.parse(data);
       setFormErrors({});
@@ -96,9 +94,10 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     try {
       if (mode === 'create') {
-        await adminUserAPI.create(form);
+        // Creation disabled; skip
       } else if (editingId) {
-        await adminUserAPI.update(editingId, form);
+        // Only allow updating the name
+        await adminUserAPI.update(editingId, { name: form.name });
       }
       setIsOpen(false);
       await load();
@@ -126,25 +125,13 @@ export default function AdminUsersPage() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <h2 className="text-2xl font-bold text-gray-900">Users</h2>
-        <div className="flex items-center gap-2 md:ml-auto">
+  <div className="flex items-center gap-2 md:ml-auto">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"><SearchIcon className="w-4 h-4" /></span>
             <Input tone="blue" forceLight className="pl-9" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Button variant="primary" className="!bg-blue-600 !text-white hover:!bg-blue-700" onClick={openCreate}>Add User</Button>
         </div>
-        <div className="md:ml-0">
-          <label className="block text-xs text-gray-500 mb-1">Filter by role</label>
-          <select
-            className="block w-full md:w-44 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-gray-900"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as 'all' | 'doctor' | 'admin')}
-          >
-            <option value="all">All</option>
-            <option value="doctor">doctor</option>
-            <option value="admin">admin</option>
-          </select>
-        </div>
+  {/* Role filter removed: admins only */}
       </div>
 
       {error && <div className="p-3 border border-red-200 bg-red-50 text-red-700 rounded">{error}</div>}
@@ -157,7 +144,7 @@ export default function AdminUsersPage() {
                 <th className="py-2 px-3">Name</th>
                 <th className="py-2 px-3">Email</th>
                 <th className="py-2 px-3">Phone</th>
-                <th className="py-2 px-3">Roles</th>
+                <th className="py-2 px-3">Username</th>
                 <th className="py-2 px-3">Actions</th>
               </tr>
             </thead>
@@ -167,17 +154,7 @@ export default function AdminUsersPage() {
                   <td className="py-2 px-3 text-gray-900">{u.name}</td>
                   <td className="py-2 px-3 text-gray-900">{u.email}</td>
                   <td className="py-2 px-3 text-gray-900">{u.phone || u.contactNumber || '-'}</td>
-                  <td className="py-2 px-3 text-gray-900">
-                    {u.roles && u.roles.length > 1 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {u.roles.map((r) => (
-                          <span key={r} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 border border-gray-200 capitalize">{r}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="capitalize">{u.role}</span>
-                    )}
-                  </td>
+                  <td className="py-2 px-3 text-black">{(u.email || '').includes('@') ? (u.email || '').split('@')[0] : ''}</td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
           <Button size="sm" variant="ghost" className="text-blue-700 hover:bg-blue-50" onClick={() => openEdit(u)}>Edit</Button>
@@ -203,34 +180,18 @@ export default function AdminUsersPage() {
             <h3 className="text-sm font-semibold text-blue-700">Account Information</h3>
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input tone="blue" forceLight brandError label="Name" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<UserIcon />} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={formErrors.name} />
-            <Input tone="blue" forceLight brandError label="Username" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<IdCard />} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} error={formErrors.username} />
-            <Input tone="blue" forceLight brandError type="email" label="Email" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<Mail />} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={formErrors.email} />
-            <Input tone="blue" forceLight brandError label="Phone (10 digits)" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<Phone />} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} error={formErrors.phoneNumber} />
+      <Input tone="blue" forceLight brandError label="Name" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<UserIcon />} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={formErrors.name} />
+      <Input tone="blue" forceLight brandError label="Username" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<IdCard />} value={form.username} disabled readOnly error={undefined} />
+      <Input tone="blue" forceLight brandError type="email" label="Email" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<Mail />} value={form.email} disabled readOnly error={undefined} />
+      <Input tone="blue" forceLight brandError label="Phone" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<Phone />} value={form.phoneNumber} disabled readOnly error={undefined} />
           </div>
         </div>
 
-        {/* Role & Security */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-blue-100/60 px-4 py-2">
-            <h3 className="text-sm font-semibold text-blue-700">Role & Security</h3>
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-900">Role</label>
-              <select className="mt-2 block w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as AdminUserFormData['role'] })}>
-                <option value="doctor">doctor</option>
-                <option value="admin">admin</option>
-              </select>
-              {formErrors.role && <p className="text-sm text-blue-600 mt-1">{formErrors.role}</p>}
-            </div>
-            <Input tone="blue" forceLight brandError type="password" label="Password" labelClassName="text-gray-900" iconClassName="text-gray-600" leftIcon={<Lock />} value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} error={formErrors.password} />
-          </div>
-        </div>
+    {/* Role & Security removed in edit: only name can be changed */}
 
         <ModalFooter className="sticky bottom-0 bg-white">
           <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-blue-600 hover:bg-blue-100">Cancel</Button>
-          <Button variant="primary" onClick={submit} isLoading={isLoading} className="!bg-blue-600 !text-white hover:!bg-blue-700">{mode === 'create' ? 'Create' : 'Save'}</Button>
+          <Button variant="primary" onClick={submit} isLoading={isLoading} className="!bg-blue-600 !text-white hover:!bg-blue-700">Save</Button>
         </ModalFooter>
       </Modal>
     </div>
