@@ -9,28 +9,38 @@ export default function RouteGuard() {
   const handledRef = useRef(false);
 
   useEffect(() => {
-    const destinationFor = (user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> }) => {
-      const roles = user?.roles || [];
-      const primary = user?.role;
-      if (roles.includes('admin') || primary === 'admin') return '/admin';
-      if (roles.includes('doctor') || primary === 'doctor') return '/doctor';
-      return '/portal';
-    };
+    // Landing page (/) must be visible to everyone after login.
+    // Enforce guard for the /doctor area (main guard is RequireRole; this is extra safety and handles post-logout UX).
     const maybeRedirect = (isAuthenticated: boolean | undefined, user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> }) => {
       if (handledRef.current) return;
       if (typeof isAuthenticated === 'undefined') return;
+      // Landing page behavior:
+      // - If unauthenticated, send to sign-in (post-logout experience)
+      // - If authenticated, allow staying on landing page
       if (pathname === '/') {
-        // Unauthenticated: send to signin
         if (!isAuthenticated) {
           handledRef.current = true;
           router.replace('/auth/signin');
           return;
         }
-        // Authenticated admins can view the normal homepage; others redirect to their dashboard
-        const isAdmin = !!(user?.role === 'admin' || user?.roles?.includes('admin'));
-        if (!isAdmin) {
+        return;
+      }
+
+      // Block /doctor for non-doctors and unauthenticated users with nuanced behavior:
+      // - If unauthenticated, send to sign-in
+      // - If authenticated but not a doctor, send to landing
+      if (pathname.startsWith('/doctor')) {
+        const roles = user?.roles || [];
+        const isDoctor = !!(user?.role === 'doctor' || roles.includes('doctor'));
+        if (!isAuthenticated) {
           handledRef.current = true;
-          router.replace(destinationFor(user));
+          router.replace('/auth/signin');
+          return;
+        }
+        if (!isDoctor) {
+          handledRef.current = true;
+          router.replace('/');
+          return;
         }
       }
     };

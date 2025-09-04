@@ -20,7 +20,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  // Rely on AuthProvider broadcast to redirect if already authenticated
+  // Rely on AuthProvider broadcast to navigate to landing once authenticated
   useEffect(() => {
     // Always send to landing page; RouteGuard will handle role-based redirects
     const destinationFor = () => '/';
