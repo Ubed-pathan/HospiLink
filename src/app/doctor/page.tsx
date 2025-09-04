@@ -25,6 +25,21 @@ function formatTime(d: Date): string {
   return `${hours}:${mm} ${ampm}`;
 }
 
+function getStatus(a: AdminAppt): string {
+  const anyA = a as AdminAppt & { appointmentStatus?: string; AppointmentStatus?: string };
+  return (
+    a.status || anyA.appointmentStatus || anyA.AppointmentStatus || ''
+  )
+    .toString()
+    .toLowerCase();
+}
+
+function getUserEmailLocal(a: AdminAppt): string | undefined {
+  const withEmail = a as AdminAppt & { usersEmail?: string };
+  const email = withEmail.usersEmail;
+  return email ? email.split('@')[0] : undefined;
+}
+
 export default function DoctorHome() {
   const [loading, setLoading] = React.useState(true);
   const [, setError] = React.useState<string | null>(null);
@@ -120,7 +135,7 @@ export default function DoctorHome() {
   const todayCount = appts.filter((a) => {
     const dt = parseApptDate(a);
     if (!dt) return false;
-    const status = (a.status || (a as any).appointmentStatus || (a as any).AppointmentStatus || '').toString().toLowerCase();
+    const status = getStatus(a);
     if (status === 'cancelled' || status === 'no-show') return false;
     return isSameDay(dt, now);
   }).length;
@@ -128,7 +143,7 @@ export default function DoctorHome() {
   const weekCount = appts.filter((a) => {
     const dt = parseApptDate(a);
     if (!dt) return false;
-    const status = (a.status || (a as any).appointmentStatus || (a as any).AppointmentStatus || '').toString().toLowerCase();
+    const status = getStatus(a);
     if (status === 'cancelled' || status === 'no-show') return false;
     return dt >= startOfWeek(now) && dt <= endOfWeek(now);
   }).length;
@@ -198,7 +213,7 @@ export default function DoctorHome() {
                 {!loading && upcoming.slice(0, 6).map(({ a, dt }, idx) => (
                   <tr key={(a.id || a.appointmentId || idx) as React.Key} className="hover:bg-gray-50/50">
                     <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{dt ? formatTime(dt) : '-'}</td>
-                    <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{a.usersFullName || (a as any).usersEmail?.split('@')[0] || 'Patient'}</td>
+                    <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{a.usersFullName || getUserEmailLocal(a) || 'Patient'}</td>
                     <td className="py-2.5 pr-4 whitespace-nowrap">
                       <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{a.reason || 'Consultation'}</span>
                     </td>
