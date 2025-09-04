@@ -13,7 +13,7 @@ import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { AppointmentFormData, Doctor } from '@/lib/types';
 import { getDepartmentById, mockAppointments } from '@/lib/mockData';
-import { doctorAPI } from '@/lib/api-services';
+import { doctorAPI, authAPI, appointmentAPI } from '@/lib/api-services';
 
 type BookingStep = 'doctor-selection' | 'date-time' | 'details' | 'confirmation';
 
@@ -35,6 +35,26 @@ function AppointmentPageInner() {
     symptoms: '',
     notes: ''
   });
+  const [me, setMe] = useState<{ id?: string; name?: string; email?: string } | null>(null);
+  const [booking, setBooking] = useState(false);
+  const [bookError, setBookError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load current user quickly from loadOnRefresh
+    let active = true;
+    (async () => {
+      try {
+        const r = await authAPI.loadOnRefresh();
+        if (!active) return;
+        const u = r?.user || r; // tolerate either { user } or user directly
+        setMe(u || null);
+      } catch {
+        if (!active) return;
+        setMe(null);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   // Load doctors from backend
   useEffect(() => {
@@ -441,6 +461,9 @@ function AppointmentPageInner() {
         </div>
       </div>
 
+      {bookError && (
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm max-w-md mx-auto" role="alert">{bookError}</div>
+      )}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link
           href="/portal"
@@ -448,12 +471,38 @@ function AppointmentPageInner() {
         >
           Go to Patient Portal
         </Link>
-        <Link
-          href="/appointment"
-          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
+        <button
+          onClick={async () => {
+            if (!selectedDoctor || !formData.date || !formData.time || !me?.id) {
+              setBookError('Missing required booking details.');
+              return;
+            }
+            setBookError(null);
+            setBooking(true);
+            try {
+              // Build ISO local date-time string
+              const appointmentTime = `${formData.date}T${formData.time}:00`;
+              await appointmentAPI.bookAppointmentV2({
+                appointmentTime,
+                userId: me.id,
+                usersFullName: me.name || me.email?.split('@')[0] || 'Patient',
+                usersEmail: me.email || '',
+                doctorId: selectedDoctor.id,
+                reason: formData.symptoms || 'Consultation',
+              });
+              window.location.href = '/portal';
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Failed to book appointment';
+              setBookError(msg);
+            } finally {
+              setBooking(false);
+            }
+          }}
+          disabled={booking}
+          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-60"
         >
-          Book Another Appointment
-        </Link>
+          {booking ? 'Booking…' : 'Confirm & Book'}
+        </button>
       </div>
     </div>
   );

@@ -9,17 +9,21 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api-services';
-import { Stethoscope, Menu, X } from 'lucide-react';
+import { Stethoscope, Menu, X, LogOut } from 'lucide-react';
 
 export default function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
+      if (loggingOut) return;
+      setLoggingOut(true);
       await authAPI.logout();
     } finally {
       router.replace('/auth/signin');
+      setLoggingOut(false);
     }
   };
 
@@ -85,9 +89,11 @@ export default function NavHeader() {
             </Link>
             <button
               onClick={handleLogout}
-              className="text-gray-600 hover:text-red-600 font-medium transition-colors"
+              disabled={loggingOut}
+              className="px-3 py-2 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 font-medium transition-colors inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-60"
             >
-              Logout
+              <LogOut className="w-4 h-4" />
+              <span>{loggingOut ? 'Logging out…' : 'Logout'}</span>
             </button>
           </div>
 
@@ -141,10 +147,12 @@ export default function NavHeader() {
                 Book Appointment
               </Link>
               <button
-                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-                className="block w-full text-center border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition-colors text-sm"
+                onClick={() => { if (!loggingOut) { setMobileMenuOpen(false); handleLogout(); } }}
+                disabled={loggingOut}
+                className="w-full text-center border border-red-300 text-red-700 py-2 px-4 rounded-md font-medium bg-white hover:bg-red-50 transition-colors text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                Logout
+                <LogOut className="w-4 h-4" />
+                <span>{loggingOut ? 'Logging out…' : 'Logout'}</span>
               </button>
             </div>
           </div>

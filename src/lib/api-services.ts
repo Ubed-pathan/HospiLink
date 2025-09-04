@@ -339,6 +339,19 @@ export const appointmentAPI = {
     return response.data;
   },
 
+  // Book appointment using backend-provided DTO at /appointment/book
+  bookAppointmentV2: async (payload: {
+    appointmentTime: string; // ISO local datetime string e.g. 2025-09-04T10:30:00
+    userId: string;
+    usersFullName: string;
+    usersEmail: string;
+    doctorId: string;
+    reason: string;
+  }) => {
+    const response = await api.post('/appointment/book', payload);
+    return response.data;
+  },
+
   // Cancel appointment
   cancelAppointment: async (id: string) => {
     const response = await api.put(`/appointments/${id}/cancel`);
