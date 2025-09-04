@@ -47,9 +47,20 @@ export default function DoctorHome() {
   const [appts, setAppts] = React.useState<AdminAppt[]>([]);
   const [avgRating, setAvgRating] = React.useState<number>(0);
   const [pendingReviews, setPendingReviews] = React.useState<number>(0);
+  const [me, setMe] = React.useState<{ id?: string; name?: string; email?: string; username?: string } | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
+    // Capture current user immediately and on auth ready
+    try {
+      const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; email?: string; name?: string; username?: string } } };
+      if (w.__HOSPILINK_AUTH__?.user) setMe(w.__HOSPILINK_AUTH__.user || null);
+    } catch {}
+    const onReady = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { id?: string; email?: string; name?: string; username?: string } } | undefined;
+      if (detail?.isAuthenticated) setMe(detail.user || null);
+    };
+    window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     const load = async () => {
       try {
         setLoading(true);
@@ -110,8 +121,8 @@ export default function DoctorHome() {
         if (!cancelled) setLoading(false);
       }
     };
-    load();
-    return () => { cancelled = true; };
+  load();
+  return () => { cancelled = true; window.removeEventListener('hospilink-auth-ready', onReady); };
   }, []);
 
   const now = new Date();
@@ -156,6 +167,29 @@ export default function DoctorHome() {
 
   return (
     <div className="space-y-6">
+      {/* Current Doctor Summary */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-base font-bold">
+            {(() => {
+              const n = (me?.name || me?.username || me?.email || 'DR').toString();
+              const parts = n.split(/\s+/);
+              const a = parts[0]?.[0] || n[0] || 'D';
+              const b = parts[1]?.[0] || '';
+              return (a + b).toUpperCase();
+            })()}
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Signed in as</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {me?.name || (me?.email ? me.email.split('@')[0] : me?.username) || 'Doctor'}
+            </div>
+            <div className="text-xs text-gray-600">
+              {me?.email || ''}{me?.username ? ((me?.email ? ' · ' : '') + `@${me.username}`) : ''}
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Link href="/doctor/appointments" className="w-full text-center px-3 py-2 rounded-md border bg-blue-600 text-white hover:bg-blue-700">View Appointments</Link>
