@@ -31,15 +31,44 @@ export default function DoctorSettingsPage() {
     // Read current auth user from broadcast for immediate display
     try {
       const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; name?: string; email?: string; username?: string } } };
-      if (w.__HOSPILINK_AUTH__?.user) setMe(w.__HOSPILINK_AUTH__.user || null);
+      if (w.__HOSPILINK_AUTH__?.user) {
+        const authUser = w.__HOSPILINK_AUTH__.user;
+        setMe(authUser || null);
+        setProfileForm((prev) => ({
+          name: prev.name || authUser?.name || '',
+          email: prev.email || authUser?.email || '',
+          phone: prev.phone,
+          address: prev.address,
+        }));
+      }
     } catch {}
     const onReady = (e: Event) => {
       const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { id?: string; name?: string; email?: string; username?: string } } | undefined;
-      if (detail?.isAuthenticated) setMe(detail.user || null);
+      if (detail?.isAuthenticated) {
+        setMe(detail.user || null);
+        const u = detail.user;
+        setProfileForm((prev) => ({
+          name: prev.name || u?.name || '',
+          email: prev.email || u?.email || '',
+          phone: prev.phone,
+          address: prev.address,
+        }));
+      }
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     return () => { active = false; window.removeEventListener('hospilink-auth-ready', onReady); };
   }, []);
+
+  // Also hydrate from auth user whenever it changes, without overriding existing values
+  React.useEffect(() => {
+    if (!me) return;
+    setProfileForm((prev) => ({
+      name: prev.name || me.name || '',
+      email: prev.email || me.email || '',
+      phone: prev.phone,
+      address: prev.address,
+    }));
+  }, [me]);
 
   const initials = React.useMemo(() => {
     const n = (user?.name || '').trim();
@@ -66,9 +95,10 @@ export default function DoctorSettingsPage() {
     setSavingProfile(true);
     try {
       const payload: Partial<User> = {
-        name: profileForm.name.trim(),
-        phone: profileForm.phone,
-        address: profileForm.address,
+  name: profileForm.name.trim(),
+  email: profileForm.email,
+  phone: profileForm.phone,
+  address: profileForm.address,
       };
       const updated = await userAPI.updateProfile(payload);
       setUser(updated);
@@ -134,9 +164,7 @@ export default function DoctorSettingsPage() {
             <div className="w-14 h-14 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">{initials}</div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
-              <div className="text-sm text-gray-500">Signed in as</div>
-              <div className="text-base font-medium text-gray-900">{me?.name || (me?.email ? me.email.split('@')[0] : me?.username) || 'Doctor'}</div>
-              <div className="text-xs text-gray-600">{me?.email || ''}{me?.username ? ((me?.email ? ' · ' : '') + `@${me.username}`) : ''}</div>
+              <p className="text-sm text-gray-500">Manage your account details</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -156,20 +184,20 @@ export default function DoctorSettingsPage() {
               <label className="block text-sm font-medium text-gray-900">Full name</label>
               <input
                 type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 value={profileForm.name}
                 onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                readOnly={!editMode}
+                readOnly
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900">Email</label>
               <input
                 type="email"
-                aria-disabled="true"
-                readOnly
-                className="mt-1 block w-full border border-gray-300 bg-white rounded-md px-3 py-2 text-sm text-black cursor-not-allowed"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 value={profileForm.email}
+                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                readOnly={!editMode}
               />
             </div>
             <div>
@@ -186,7 +214,7 @@ export default function DoctorSettingsPage() {
               <label className="block text-sm font-medium text-gray-900">Phone</label>
               <input
                 type="tel"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 value={profileForm.phone || ''}
                 onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                 readOnly={!editMode}
@@ -196,7 +224,7 @@ export default function DoctorSettingsPage() {
               <label className="block text-sm font-medium text-gray-900">Address</label>
               <input
                 type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 value={profileForm.address || ''}
                 onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
                 readOnly={!editMode}
@@ -204,7 +232,6 @@ export default function DoctorSettingsPage() {
             </div>
             {profileMsg && <div className="md:col-span-2 flex items-center justify-end"><span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{profileMsg}</span></div>}
           </div>
-        </div>
       </section>
 
       {/* Doctor Profile (read-only) */}
