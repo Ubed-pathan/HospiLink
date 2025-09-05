@@ -35,7 +35,14 @@ function AppointmentPageInner() {
     symptoms: '',
     notes: ''
   });
-  const [me, setMe] = useState<{ id?: string; name?: string; email?: string } | null>(null);
+  type UserWithFullName = {
+    id?: string;
+    name?: string;
+    fullName?: string;
+    username?: string;
+    email?: string;
+  };
+  const [me, setMe] = useState<UserWithFullName | null>(null);
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
   const [emailOverride, setEmailOverride] = useState('');
@@ -47,8 +54,15 @@ function AppointmentPageInner() {
       try {
         const r = await authAPI.loadOnRefresh();
         if (!active) return;
-        const u = r?.user || r; // tolerate either { user } or user directly
-        setMe(u || null);
+        const u = r?.user || r;
+        // Try to propagate fullName and username if present
+        setMe({
+          id: u?.id,
+          name: u?.name,
+          fullName: u?.fullName,
+          username: u?.username,
+          email: u?.email,
+        });
       } catch {
         if (!active) return;
         setMe(null);
@@ -486,8 +500,15 @@ function AppointmentPageInner() {
               try {
                 const profile = await userAPI.getProfile();
                 userEmail = profile?.email || '';
-                // also populate name from profile if missing
-                if (!user.name && profile?.name) user = { ...user, name: profile.name };
+                // also populate name/fullName/username from profile if missing
+                if (profile) {
+                  user = {
+                    ...user,
+                    name: user.name || profile.name,
+                    fullName: user.fullName || (profile as { fullName?: string }).fullName,
+                    username: user.username || (profile as { username?: string }).username,
+                  };
+                }
               } catch {
                 // ignore, will validate below
               }
@@ -499,10 +520,18 @@ function AppointmentPageInner() {
             }
             const appointmentTime = `${formData.date}T${formData.time}:00`;
             const reason = (formData.symptoms || 'Consultation').slice(0, 250);
+            // Prefer fullName, then name, then username, then email local-part
+            const usersFullName = (
+              (user.fullName && user.fullName.trim()) ||
+              (user.name && user.name.trim()) ||
+              (user.username && user.username.trim()) ||
+              (userEmail.split('@')[0]) ||
+              'Patient'
+            );
             await appointmentAPI.bookAppointmentV2({
               appointmentTime,
               userId: String(user.id),
-              usersFullName: (user.name || userEmail.split('@')[0] || 'Patient').trim(),
+              usersFullName,
               usersEmail: userEmail,
               doctorId: selectedDoctor.id,
               reason,
