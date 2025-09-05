@@ -225,7 +225,7 @@ export default function DoctorsPage() {
                     placeholder="Search by doctor name or specialty..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-2 md:py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
                 
@@ -233,9 +233,16 @@ export default function DoctorsPage() {
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
-                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                    disabled={loadingDepartments}
+                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base disabled:bg-gray-100 disabled:text-gray-500"
                   >
                     <option value="">All Departments</option>
+                    {loadingDepartments ? (
+                      <option value="" disabled>Loading departments...</option>
+                    ) : null}
+                    {departmentsError ? (
+                      <option value="" disabled>{departmentsError}</option>
+                    ) : null}
                     {departments.map((dept: Department) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
@@ -246,7 +253,7 @@ export default function DoctorsPage() {
                   <select
                     value={selectedLocation}
                     onChange={(e) => setSelectedLocation(e.target.value)}
-                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   >
                     {locations.map((location) => (
                       <option key={location} value={location}>
@@ -274,7 +281,7 @@ export default function DoctorsPage() {
                 {filteredDoctors.length} Doctor{filteredDoctors.length !== 1 ? 's' : ''} Available
               </h2>
               
-              <select className="px-3 md:px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base">
+              <select className="px-3 md:px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base">
                 <option>Sort by Rating</option>
                 <option>Sort by Name</option>
                 <option>Sort by Experience</option>
