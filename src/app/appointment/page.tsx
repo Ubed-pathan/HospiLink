@@ -568,11 +568,11 @@ function AppointmentPageInner() {
       <div className="bg-gray-50 p-6 rounded-lg max-w-md mx-auto text-left">
         <h3 className="font-semibold text-gray-900 mb-4">Appointment Details</h3>
         <div className="space-y-2 text-sm">
-          <div><strong>Doctor:</strong> Dr. {selectedDoctor?.name}</div>
-          <div><strong>Date:</strong> {formData.date}</div>
-          <div><strong>Time:</strong> {formData.time}</div>
-          <div><strong>Location:</strong> {selectedDoctor?.location}</div>
-          <div><strong>Type:</strong> {formData.type.replace('-', ' ')}</div>
+          <div><span className="font-semibold text-gray-700">Doctor:</span> <span className="text-gray-900">Dr. {selectedDoctor?.name}</span></div>
+          <div><span className="font-semibold text-gray-700">Date:</span> <span className="text-gray-900">{formData.date}</span></div>
+          <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formData.time}</span></div>
+          <div><span className="font-semibold text-gray-700">Location:</span> <span className="text-gray-900">{selectedDoctor?.location}</span></div>
+          <div><span className="font-semibold text-gray-700">Type:</span> <span className="text-gray-900">{formData.type.replace('-', ' ')}</span></div>
         </div>
       </div>
 
