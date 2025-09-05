@@ -424,7 +424,9 @@ function AppointmentPageInner() {
       </div>
 
       {bookError && (
-        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm" role="alert">{bookError}</div>
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold" role="alert">
+          {bookError}
+        </div>
       )}
 
       <div>
@@ -435,7 +437,7 @@ function AppointmentPageInner() {
           value={formData.symptoms}
           onChange={(e) => setFormData(prev => ({ ...prev, symptoms: e.target.value }))}
           rows={4}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
           placeholder="Please describe your symptoms or reason for the appointment..."
         />
       </div>
@@ -464,7 +466,7 @@ function AppointmentPageInner() {
           value={formData.notes}
           onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
           rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
           placeholder="Any additional information you'd like the doctor to know..."
         />
       </div>
@@ -556,6 +558,11 @@ function AppointmentPageInner() {
 
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
+      {bookError && (
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold max-w-md mx-auto" role="alert">
+          {bookError}
+        </div>
+      )}
       <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
         <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
       </div>
