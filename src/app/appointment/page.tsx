@@ -437,7 +437,7 @@ function AppointmentPageInner() {
           value={formData.symptoms}
           onChange={(e) => setFormData(prev => ({ ...prev, symptoms: e.target.value }))}
           rows={4}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
           placeholder="Please describe your symptoms or reason for the appointment..."
         />
       </div>
@@ -453,7 +453,7 @@ function AppointmentPageInner() {
             value={emailOverride}
             onChange={(e) => setEmailOverride(e.target.value)}
             placeholder="you@example.com"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
           />
         </div>
       )}
@@ -466,7 +466,7 @@ function AppointmentPageInner() {
           value={formData.notes}
           onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
           rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
           placeholder="Any additional information you'd like the doctor to know..."
         />
       </div>
@@ -558,45 +558,45 @@ function AppointmentPageInner() {
 
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
-      {bookError && (
+      {bookError ? (
         <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold max-w-md mx-auto" role="alert">
           {bookError}
         </div>
+      ) : (
+        <>
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900">Appointment Confirmed!</h2>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Your appointment has been successfully booked. You will receive a confirmation email shortly.
+          </p>
+          <div className="bg-gray-50 p-6 rounded-lg max-w-md mx-auto text-left">
+            <h3 className="font-semibold text-gray-900 mb-4">Appointment Details</h3>
+            <div className="space-y-2 text-sm">
+              <div><span className="font-semibold text-gray-700">Doctor:</span> <span className="text-gray-900">Dr. {selectedDoctor?.name}</span></div>
+              <div><span className="font-semibold text-gray-700">Date:</span> <span className="text-gray-900">{formData.date}</span></div>
+              <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formData.time}</span></div>
+              <div><span className="font-semibold text-gray-700">Location:</span> <span className="text-gray-900">{selectedDoctor?.location}</span></div>
+              <div><span className="font-semibold text-gray-700">Type:</span> <span className="text-gray-900">{formData.type.replace('-', ' ')}</span></div>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/portal"
+              className="bg-blue-600 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Go to Patient Portal
+            </Link>
+            <Link
+              href="/appointment"
+              className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              Book Another Appointment
+            </Link>
+          </div>
+        </>
       )}
-      <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-        <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
-      </div>
-      
-      <h2 className="text-3xl font-bold text-gray-900">Appointment Confirmed!</h2>
-      <p className="text-gray-600 max-w-md mx-auto">
-        Your appointment has been successfully booked. You will receive a confirmation email shortly.
-      </p>
-
-      <div className="bg-gray-50 p-6 rounded-lg max-w-md mx-auto text-left">
-        <h3 className="font-semibold text-gray-900 mb-4">Appointment Details</h3>
-        <div className="space-y-2 text-sm">
-          <div><span className="font-semibold text-gray-700">Doctor:</span> <span className="text-gray-900">Dr. {selectedDoctor?.name}</span></div>
-          <div><span className="font-semibold text-gray-700">Date:</span> <span className="text-gray-900">{formData.date}</span></div>
-          <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formData.time}</span></div>
-          <div><span className="font-semibold text-gray-700">Location:</span> <span className="text-gray-900">{selectedDoctor?.location}</span></div>
-          <div><span className="font-semibold text-gray-700">Type:</span> <span className="text-gray-900">{formData.type.replace('-', ' ')}</span></div>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link
-          href="/portal"
-          className="bg-blue-600 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-        >
-          Go to Patient Portal
-        </Link>
-        <Link
-          href="/appointment"
-          className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
-        >
-          Book Another Appointment
-        </Link>
-      </div>
     </div>
   );
 
