@@ -24,12 +24,25 @@ export default function RecoilAuthProvider({ children }: { children: React.React
       while (!didCancel) {
         try {
           const response = await authAPI.loadOnRefresh();
-          if (response && response.id && response.username) {
+          if (response && response.id && (response.username || response.email)) {
             if (didCancel) break;
-            // Normalize roles coming as ["ADMIN","USER"] to lowercase app roles
-            type RefreshPayload = { id: string; username: string; email?: string; fullName?: string; role?: string; roles?: string[] };
+            // Normalize roles and map new UserDto fields
+            type RefreshPayload = {
+              id: string;
+              email?: string;
+              username?: string;
+              firstName?: string;
+              middleName?: string;
+              lastName?: string;
+              roles?: string[] | Set<string>;
+              role?: string;
+            };
             const resp = response as unknown as RefreshPayload;
-            const backendRoles: string[] = Array.isArray(resp.roles) ? resp.roles! : [];
+            const backendRoles: string[] = Array.isArray(resp.roles)
+              ? resp.roles!
+              : resp.roles instanceof Set
+                ? Array.from(resp.roles)
+                : [];
             const normRoles = backendRoles
               .map(r => String(r).toLowerCase())
               .map(r => (r === 'user' ? 'patient' : r))
@@ -38,13 +51,22 @@ export default function RecoilAuthProvider({ children }: { children: React.React
               ? 'admin'
               : normRoles.includes('doctor')
               ? 'doctor'
-              : (response.role as 'patient' | 'doctor' | 'admin') || 'patient');
+              : ((resp.role as 'patient' | 'doctor' | 'admin') || 'patient'));
+
+            const displayNameRaw = [resp.firstName, resp.middleName, resp.lastName]
+              .filter(Boolean)
+              .join(' ')
+              .trim();
+            const displayName = displayNameRaw
+              || (resp.username || '')
+              || (resp.email ? String(resp.email).split('@')[0] : '')
+              || 'User';
 
             const user = {
-              id: response.id,
-              email: response.email,
-              name: response.fullName,
-              username: response.username,
+              id: resp.id,
+              email: resp.email || '',
+              name: displayName,
+              username: resp.username,
               role: primary,
               roles: normRoles.length ? normRoles : undefined,
             };

@@ -63,7 +63,7 @@ export default function AdminUsersPage() {
   const openEdit = (u: User) => {
     setMode('edit');
     setEditingId(u.id);
-    setForm({ name: u.name, username: (u.email || '').split('@')[0] || '', email: u.email, phoneNumber: u.phone || u.contactNumber || '', role: u.role, password: '' });
+  setForm({ name: u.name, username: (u.email || '').split('@')[0] || '', email: u.email, phoneNumber: u.phone || u.contactNumber || '', role: u.role, password: '' });
     setFormErrors({});
     setIsOpen(true);
   };

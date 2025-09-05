@@ -24,14 +24,39 @@ import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
 
 import { useRouter } from 'next/navigation';
+import { authAPI, userAPI } from '@/lib/api-services';
+import Modal, { ModalFooter } from '@/components/ui/Modal';
+
+// Phone helpers available module-wide
+type WithPhoneVariants = { phone?: string; contactNumber?: string; phoneNumber?: string };
+const getPhone = (p: WithPhoneVariants | null | undefined): string | undefined => p?.phone || p?.contactNumber || p?.phoneNumber;
 
 
 export default function PatientPortalPage() {
+  const toGender = (g: unknown): '' | 'male' | 'female' | 'other' => {
+    const s = String(g ?? '').toLowerCase();
+    return s === 'male' || s === 'female' || s === 'other' ? (s as 'male' | 'female' | 'other') : '';
+  };
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
   const [authResolved, setAuthResolved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [authUsername, setAuthUsername] = useState<string>('');
+  const [authPhone, setAuthPhone] = useState<string>('');
+  const [profile, setProfile] = useState<import('@/lib/types').User | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    gender: '' as '' | 'male' | 'female' | 'other',
+    address: '',
+  });
 
   // Guard: Redirect to signin when unauthenticated once loading completes
   useEffect(() => {
@@ -59,6 +84,51 @@ export default function PatientPortalPage() {
     if (!authResolved) return;
     if (!isAuthenticated) router.replace('/auth/signin');
   }, [authResolved, isAuthenticated, router]);
+
+  // Load full profile once authenticated
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      if (!authResolved || !isAuthenticated) return;
+      try {
+        // Ensure we have freshest user
+        try {
+          const r = await authAPI.loadOnRefresh();
+          const u = (r?.user ?? r) as {
+            id?: string;
+            email?: string;
+            username?: string;
+            firstName?: string;
+            middleName?: string;
+            lastName?: string;
+            phoneNumber?: string;
+          } | null;
+          const displayNameRaw = [u?.firstName, u?.middleName, u?.lastName].filter(Boolean).join(' ').trim();
+          const displayName = displayNameRaw || u?.username || (u?.email ? String(u.email).split('@')[0] : '') || 'User';
+          if (active && u?.id && (u?.email || u?.username)) {
+            setUser({ id: String(u.id), name: displayName, email: String(u.email || '') });
+            setAuthUsername(u?.username || '');
+            setAuthPhone(u?.phoneNumber || '');
+          }
+        } catch {}
+        const p = await userAPI.getProfile();
+        if (!active) return;
+        setProfile(p);
+        setForm({
+          name: p.name || '',
+          email: p.email || '',
+          phone: (getPhone(p as unknown as WithPhoneVariants) || authPhone || ''),
+          dateOfBirth: p.dateOfBirth || '',
+          gender: toGender(p.gender),
+          address: p.address || '',
+        });
+      } catch {
+        // ignore
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [authResolved, isAuthenticated, authPhone]);
 
   if (!authResolved) return null;
   if (!isAuthenticated || !user) return null;
@@ -114,22 +184,22 @@ export default function PatientPortalPage() {
   const renderDashboard = () => (
     <div className="space-y-6 md:space-y-8">
       {/* Welcome Section */}
-      <div className="bg-blue-600 rounded-lg p-4 md:p-6 text-white">
-        <h1 className="text-xl md:text-2xl font-bold mb-2">Welcome back, {currentUser.name}!</h1>
-        <p className="opacity-90 text-sm md:text-base">Here&apos;s your health summary and upcoming appointments.</p>
+      <div className="bg-blue-600 rounded-lg p-3 md:p-6 text-white">
+        <h1 className="text-lg md:text-2xl font-bold mb-1 md:mb-2">Welcome back, {currentUser.name}!</h1>
+        <p className="opacity-90 text-xs md:text-base">Here&apos;s your health summary and upcoming appointments.</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {quickStats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 md:p-6 rounded-lg shadow-sm border">
+          <div key={index} className="bg-white p-3 md:p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-gray-600 mb-1">{stat.label}</p>
-                <p className="text-lg md:text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-[11px] md:text-sm text-gray-600 mb-1">{stat.label}</p>
+                <p className="text-base md:text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
-              <div className={`w-10 h-10 md:w-12 md:h-12 ${stat.bg} rounded-full flex items-center justify-center`}>
-                <stat.icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
+              <div className={`w-8 h-8 md:w-12 md:h-12 ${stat.bg} rounded-full flex items-center justify-center`}>
+                <stat.icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color}`} />
               </div>
             </div>
           </div>
@@ -157,9 +227,9 @@ export default function PatientPortalPage() {
               {upcomingAppointments.map(appointment => {
                 const doctor = getDoctorById(appointment.doctorId);
                 return (
-                  <div key={appointment.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3">
+          <div key={appointment.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3">
                     <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm md:text-base">
+            <div className="w-9 h-9 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-xs md:text-base">
                         {doctor?.name.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -362,21 +432,21 @@ export default function PatientPortalPage() {
       
       {/* Header */}
       <section className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xl font-semibold">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-lg flex items-center justify-center text-white text-lg sm:text-xl font-semibold">
                 {currentUser.avatar}
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
                   Welcome back, {currentUser.name.split(' ')[0]}
                 </h1>
-                <p className="text-gray-600 text-lg">Manage your healthcare journey</p>
+                <p className="text-gray-600 text-sm sm:text-base">Manage your healthcare journey</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <button className="relative p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors">
                 <Bell className="w-5 h-5" />
                 {unreadNotifications.length > 0 && (
@@ -385,7 +455,11 @@ export default function PatientPortalPage() {
                   </span>
                 )}
               </button>
-              <button className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors">
+              <button
+                className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Edit profile settings"
+              >
                 <Settings className="w-5 h-5" />
               </button>
             </div>
@@ -396,12 +470,13 @@ export default function PatientPortalPage() {
       {/* Tabs */}
       <section className="bg-white border-b">
         <div className="container mx-auto px-4">
-          <div className="flex space-x-8">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="flex min-w-max space-x-4 sm:space-x-6 lg:space-x-8">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium transition-colors ${
+                className={`flex items-center gap-2 py-3 sm:py-4 px-1 sm:px-2 border-b-2 font-medium whitespace-nowrap text-sm sm:text-base transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -411,6 +486,7 @@ export default function PatientPortalPage() {
                 {tab.label}
               </button>
             ))}
+            </div>
           </div>
         </div>
       </section>
@@ -424,8 +500,40 @@ export default function PatientPortalPage() {
             {activeTab === 'records' && renderMedicalRecords()}
             {activeTab === 'profile' && (
               <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Settings</h2>
-                <p className="text-gray-600">Profile management coming soon...</p>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
+                  <button onClick={() => setSettingsOpen(true)} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Full Name</div>
+                    <div className="text-gray-900 font-medium">{profile?.name || currentUser.name}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Email</div>
+                    <div className="text-gray-900 font-medium">{profile?.email || currentUser.email}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Username</div>
+                    <div className="text-gray-900 font-medium">{authUsername || (profile?.email || currentUser.email || '').split('@')[0] || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Phone</div>
+                    <div className="text-gray-900 font-medium">{getPhone(profile as unknown as WithPhoneVariants) || authPhone || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Date of Birth</div>
+                    <div className="text-gray-900 font-medium">{profile?.dateOfBirth || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Gender</div>
+                    <div className="text-gray-900 font-medium capitalize">{profile?.gender || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg md:col-span-2">
+                    <div className="text-xs text-gray-500">Address</div>
+                    <div className="text-gray-900 font-medium">{profile?.address || '—'}</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -433,6 +541,130 @@ export default function PatientPortalPage() {
       </section>
 
       <Footer />
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Edit Profile" size="lg">
+          <form
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Your full name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-900"
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={authUsername || (form.email || '').split('@')[0]}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-900"
+                  placeholder="username"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="10-digit phone"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <input
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-0 focus:border-blue-300"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select
+                  value={form.gender}
+                  onChange={(e) => setForm({ ...form, gender: toGender(e.target.value) })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-0 focus:border-blue-300"
+                >
+                  <option value="">Select</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <textarea
+                  rows={3}
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Street, City, State, ZIP"
+                />
+              </div>
+            </div>
+            {saveError && (
+              <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm">{saveError}</div>
+            )}
+          </form>
+          <ModalFooter>
+            <button
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+              onClick={() => setSettingsOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              disabled={saving}
+              onClick={async () => {
+                try {
+                  setSaving(true);
+                  setSaveError(null);
+                  const payload: Partial<import('@/lib/types').User> = {
+                    name: form.name?.trim() || undefined,
+                    phone: form.phone?.trim() || undefined,
+                    contactNumber: form.phone?.trim() || undefined,
+                    dateOfBirth: form.dateOfBirth || undefined,
+                    gender: form.gender || undefined,
+                    address: form.address?.trim() || undefined,
+                  };
+                  const updated = await userAPI.updateProfile(payload);
+                  setProfile(updated);
+                  setSettingsOpen(false);
+                } catch (e) {
+                  const err = e as { response?: { data?: { message?: string } }; message?: string };
+                  const msg = err?.response?.data?.message || err?.message || 'Failed to save changes';
+                  setSaveError(msg);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </ModalFooter>
+        </Modal>
+      )}
     </div>
   );
 }

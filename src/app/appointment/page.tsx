@@ -54,12 +54,19 @@ function AppointmentPageInner() {
       try {
         const r = await authAPI.loadOnRefresh();
         if (!active) return;
-        const u = r?.user || r;
-        // Try to propagate fullName and username if present
+        const u = (r?.user || r) as {
+          id?: string;
+          email?: string;
+          username?: string;
+          firstName?: string;
+          middleName?: string;
+          lastName?: string;
+        } | null;
+        const fn = [u?.firstName, u?.middleName, u?.lastName].filter(Boolean).join(' ').trim();
         setMe({
           id: u?.id,
-          name: u?.name,
-          fullName: u?.fullName,
+          name: fn || u?.username || (u?.email ? String(u.email).split('@')[0] : ''),
+          fullName: fn || undefined,
           username: u?.username,
           email: u?.email,
         });
@@ -485,7 +492,22 @@ function AppointmentPageInner() {
             if (!user) {
               try {
                 const r = await authAPI.loadOnRefresh();
-                user = r?.user || r || null;
+                const u = (r?.user || r) as {
+                  id?: string;
+                  email?: string;
+                  username?: string;
+                  firstName?: string;
+                  middleName?: string;
+                  lastName?: string;
+                } | null;
+                const fn = [u?.firstName, u?.middleName, u?.lastName].filter(Boolean).join(' ').trim();
+                user = {
+                  id: u?.id,
+                  name: fn || u?.username || (u?.email ? String(u.email).split('@')[0] : ''),
+                  fullName: fn || undefined,
+                  username: u?.username,
+                  email: u?.email,
+                };
                 setMe(user);
               } catch {
                 user = null;

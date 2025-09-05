@@ -71,15 +71,26 @@ export default function SignInPage() {
       // Refresh auth state immediately and broadcast for guards/listeners
       try {
         const resp = await authAPI.loadOnRefresh();
-        type RefreshPayload = { id: string; username: string; email?: string; fullName?: string; roles?: string[]; role?: string };
+        type RefreshPayload = {
+          id: string;
+          email?: string;
+          username?: string;
+          firstName?: string;
+          middleName?: string;
+          lastName?: string;
+          roles?: string[] | Set<string>;
+          role?: string;
+        };
         const data = resp as unknown as RefreshPayload;
-        const backendRoles = Array.isArray(data.roles) ? data.roles : [];
+        const backendRoles = Array.isArray(data.roles) ? data.roles : (data.roles instanceof Set ? Array.from(data.roles) : []);
         const roles = backendRoles
           .map((r) => String(r).toLowerCase())
           .map((r) => (r === 'user' ? 'patient' : r))
           .filter((r) => r === 'patient' || r === 'doctor' || r === 'admin') as Array<'patient' | 'doctor' | 'admin'>;
         const primary: 'patient' | 'doctor' | 'admin' = roles.includes('admin') ? 'admin' : roles.includes('doctor') ? 'doctor' : 'patient';
-        const user = { id: data.id, email: data.email, name: data.fullName, username: data.username, role: primary, roles };
+        const displayNameRaw = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ').trim();
+        const displayName = displayNameRaw || data.username || (data.email ? String(data.email).split('@')[0] : '') || 'User';
+        const user = { id: data.id, email: data.email || '', name: displayName, username: data.username, role: primary, roles };
         if (typeof window !== 'undefined') {
           try {
             type WUser = { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> };
