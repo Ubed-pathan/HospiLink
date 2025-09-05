@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 
 // Aligning frontend form with backend UserRegistrationDto
 // Backend DTO fields:
-// firstName, middleName, lastName, username, email, password, age,
+// firstName, middleName, lastName, username, email, password, age, gender,
 // phoneNumber, address, city, state, country, zipCode
 interface SignUpFormData {
   email: string;
@@ -25,6 +25,7 @@ interface SignUpFormData {
   password: string;
   confirmPassword: string;
   age: string;              // keep as string for controlled input, convert to number on submit
+  gender: string;
   phoneNumber: string;
   address: string;
   city: string;
@@ -34,21 +35,6 @@ interface SignUpFormData {
 }
 
 // Local DTO type matching backend registration expectations
-type RegistrationDto = {
-  firstName: string;
-  middleName: string | null;
-  lastName: string;
-  username: string;
-  email: string;
-  password: string;
-  age: number;
-  phoneNumber: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  zipCode: string;
-};
 
 type SignUpStep = 'email' | 'otp' | 'details' | 'success';
 
@@ -65,6 +51,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     age: '',
+  gender: '',
     phoneNumber: '',
     address: '',
     city: '',
@@ -122,7 +109,7 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
 
-    // Validate passwords
+  // Validate passwords
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -130,6 +117,19 @@ export default function SignUpPage() {
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    // Validate age range per backend constraints
+    const ageNum = Number(formData.age);
+    if (!Number.isFinite(ageNum) || ageNum < 1 || ageNum > 120) {
+      setError('Age must be between 1 and 120.');
+      return;
+    }
+
+    // Validate gender required
+    if (!formData.gender.trim()) {
+      setError('Please select your gender.');
       return;
     }
 
@@ -150,7 +150,8 @@ export default function SignUpPage() {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        age: Number(formData.age) || 0,
+        age: ageNum,
+        gender: formData.gender.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         address: formData.address.trim(),
         city: formData.city.trim(),
@@ -161,9 +162,7 @@ export default function SignUpPage() {
 
       console.log('Submitting registration DTO:', dto);
 
-  // TODO: Create a frontend type for the registration DTO if reused elsewhere
-  // Cast dto to expected shape (service expects at least password field inside partial User)
-  const response = await authAPI.completeRegistration(dto as unknown as RegistrationDto & { password: string });
+  const response = await authAPI.completeRegistration(dto);
       console.log('Registration Response:', response);
       // Registration successful, redirect to login page
       setCurrentStep('success');
@@ -451,7 +450,7 @@ export default function SignUpPage() {
           </div>
         </div>
         {/* Username & Age */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
@@ -475,6 +474,20 @@ export default function SignUpPage() {
               placeholder="Age"
               required
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
+              required
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
           </div>
         </div>
         {/* Contact */}

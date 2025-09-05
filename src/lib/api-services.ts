@@ -27,8 +27,8 @@ export const authAPI = {
     return response.data;
   },
 
-  // Complete registration
-  completeRegistration: async (userData: Partial<User> & { password: string }) => {
+  // Complete registration (accepts backend UserRegistrationDto shape)
+  completeRegistration: async (userData: Record<string, unknown>) => {
     const response = await api.post('/user/register', userData);
     return response.data;
   },

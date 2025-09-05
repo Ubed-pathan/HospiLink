@@ -7,37 +7,30 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  FileText, 
-  Bell, 
+import {
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Bell,
   Settings,
   Plus,
-  Activity,
   Pill,
-  Download
+  Download,
+  Activity,
 } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
-
 import { useRouter } from 'next/navigation';
 import { authAPI, userAPI } from '@/lib/api-services';
 import Modal, { ModalFooter } from '@/components/ui/Modal';
 
-// Phone helpers available module-wide
-type WithPhoneVariants = { phone?: string; contactNumber?: string; phoneNumber?: string };
-const getPhone = (p: WithPhoneVariants | null | undefined): string | undefined => p?.phone || p?.contactNumber || p?.phoneNumber;
+type WithPhoneVariants = { phone?: string | null; contactNumber?: string | null; phoneNumber?: string | null; address?: string | null };
+const getPhone = (p?: WithPhoneVariants | null) => (p?.phone || p?.contactNumber || p?.phoneNumber || '')?.toString() || '';
+const toGender = (g?: string | null) => (g === 'male' || g === 'female' || g === 'other' ? g : '') as '' | 'male' | 'female' | 'other';
 
-
-export default function PatientPortalPage() {
-  const toGender = (g: unknown): '' | 'male' | 'female' | 'other' => {
-    const s = String(g ?? '').toLowerCase();
-    return s === 'male' || s === 'female' || s === 'other' ? (s as 'male' | 'female' | 'other') : '';
-  };
-
+export default function PortalPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
   const [authResolved, setAuthResolved] = useState(false);
@@ -45,6 +38,13 @@ export default function PatientPortalPage() {
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const [authUsername, setAuthUsername] = useState<string>('');
   const [authPhone, setAuthPhone] = useState<string>('');
+  const [authAddress, setAuthAddress] = useState<string>('');
+  const [authCity, setAuthCity] = useState<string>('');
+  const [authStateName, setAuthStateName] = useState<string>('');
+  const [authCountry, setAuthCountry] = useState<string>('');
+  const [authZip, setAuthZip] = useState<string>('');
+  const [authAge, setAuthAge] = useState<number | null>(null);
+  const [authGender, setAuthGender] = useState<string>('');
   const [profile, setProfile] = useState<import('@/lib/types').User | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,7 +91,20 @@ export default function PatientPortalPage() {
     const load = async () => {
       if (!authResolved || !isAuthenticated) return;
       try {
-        // Ensure we have freshest user
+        let refresh = {
+          id: '',
+          email: '',
+          displayName: '',
+          username: '',
+          phoneNumber: '',
+          address: '',
+          city: '',
+          state: '',
+          country: '',
+          zipCode: '',
+          age: null as number | null,
+          gender: '' as string,
+        };
         try {
           const r = await authAPI.loadOnRefresh();
           const u = (r?.user ?? r) as {
@@ -102,25 +115,53 @@ export default function PatientPortalPage() {
             middleName?: string;
             lastName?: string;
             phoneNumber?: string;
+            address?: string;
+            city?: string;
+            state?: string;
+            country?: string;
+            zipCode?: string;
+            age?: number;
+            gender?: string | null;
           } | null;
           const displayNameRaw = [u?.firstName, u?.middleName, u?.lastName].filter(Boolean).join(' ').trim();
           const displayName = displayNameRaw || u?.username || (u?.email ? String(u.email).split('@')[0] : '') || 'User';
           if (active && u?.id && (u?.email || u?.username)) {
-            setUser({ id: String(u.id), name: displayName, email: String(u.email || '') });
-            setAuthUsername(u?.username || '');
-            setAuthPhone(u?.phoneNumber || '');
+            refresh = {
+              id: String(u.id || ''),
+              email: String(u.email || ''),
+              displayName,
+              username: u?.username || '',
+              phoneNumber: u?.phoneNumber || '',
+              address: u?.address || '',
+              city: u?.city || '',
+              state: u?.state || '',
+              country: u?.country || '',
+              zipCode: u?.zipCode || '',
+              age: typeof u?.age === 'number' ? (u!.age as number) : null,
+              gender: (u?.gender || '') as string,
+            };
+            setUser({ id: refresh.id, name: refresh.displayName, email: refresh.email });
+            setAuthUsername(refresh.username);
+            setAuthPhone(refresh.phoneNumber);
+            setAuthAddress(refresh.address);
+            setAuthCity(refresh.city);
+            setAuthStateName(refresh.state);
+            setAuthCountry(refresh.country);
+            setAuthZip(refresh.zipCode);
+            setAuthAge(refresh.age);
+            setAuthGender(refresh.gender);
           }
         } catch {}
         const p = await userAPI.getProfile();
         if (!active) return;
         setProfile(p);
         setForm({
-          name: p.name || '',
-          email: p.email || '',
-          phone: (getPhone(p as unknown as WithPhoneVariants) || authPhone || ''),
+          name: p.name || refresh.displayName || '',
+          email: p.email || refresh.email || '',
+          phone: getPhone(p as unknown as WithPhoneVariants) || refresh.phoneNumber || '',
           dateOfBirth: p.dateOfBirth || '',
-          gender: toGender(p.gender),
-          address: p.address || '',
+          gender: toGender(p.gender || refresh.gender),
+          address: p.address || refresh.address || '',
         });
       } catch {
         // ignore
@@ -128,7 +169,7 @@ export default function PatientPortalPage() {
     };
     load();
     return () => { active = false; };
-  }, [authResolved, isAuthenticated, authPhone]);
+  }, [authResolved, isAuthenticated]);
 
   if (!authResolved) return null;
   if (!isAuthenticated || !user) return null;
@@ -527,11 +568,31 @@ export default function PatientPortalPage() {
                   </div>
                   <div className="p-4 border rounded-lg">
                     <div className="text-xs text-gray-500">Gender</div>
-                    <div className="text-gray-900 font-medium capitalize">{profile?.gender || '—'}</div>
+                    <div className="text-gray-900 font-medium capitalize">{profile?.gender || authGender || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Age</div>
+                    <div className="text-gray-900 font-medium">{typeof authAge === 'number' ? authAge : '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">City</div>
+                    <div className="text-gray-900 font-medium">{authCity || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">State</div>
+                    <div className="text-gray-900 font-medium">{authStateName || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Country</div>
+                    <div className="text-gray-900 font-medium">{authCountry || '—'}</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-xs text-gray-500">Zip Code</div>
+                    <div className="text-gray-900 font-medium">{authZip || '—'}</div>
                   </div>
                   <div className="p-4 border rounded-lg md:col-span-2">
                     <div className="text-xs text-gray-500">Address</div>
-                    <div className="text-gray-900 font-medium">{profile?.address || '—'}</div>
+                    <div className="text-gray-900 font-medium">{profile?.address || authAddress || '—'}</div>
                   </div>
                 </div>
               </div>
@@ -542,7 +603,7 @@ export default function PatientPortalPage() {
 
       <Footer />
       {/* Settings Modal */}
-      {settingsOpen && (
+  {settingsOpen && (
         <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Edit Profile" size="lg">
           <form
             className="space-y-4"
