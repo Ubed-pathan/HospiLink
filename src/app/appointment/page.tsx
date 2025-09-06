@@ -159,6 +159,18 @@ function AppointmentPageInner() {
     return `${h}:${m}`;
   };
 
+  // Format HH:mm to h:mm AM/PM
+  const formatTime12h = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    const [hhStr, mm] = hhmm.split(':');
+    let hh = Number(hhStr);
+    if (Number.isNaN(hh)) return hhmm;
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12;
+    if (hh === 0) hh = 12;
+    return `${hh}:${mm} ${ampm}`;
+  };
+
   // Generate 15-min slots from 10:30 to 17:30, excluding break 14:30–15:00
   const generateScheduledSlots = React.useCallback((): string[] => {
     const START = '10:30';
@@ -542,8 +554,8 @@ function AppointmentPageInner() {
             <div className="space-y-2 text-sm">
               <div><span className="font-semibold text-gray-700">Doctor:</span> <span className="text-gray-900">Dr. {selectedDoctor?.name}</span></div>
               <div><span className="font-semibold text-gray-700">Date:</span> <span className="text-gray-900">{formData.date}</span></div>
-              <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formData.time}</span></div>
-              <div><span className="font-semibold text-gray-700">Location:</span> <span className="text-gray-900">{selectedDoctor?.location}</span></div>
+              <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formatTime12h(formData.time)}</span></div>
+              <div><span className="font-semibold text-gray-700">Reason:</span> <span className="text-gray-900">{formData.reasonPreset === 'other' ? (formData.reasonOther || '—') : (formData.reasonPreset || '—')}</span></div>
               {/* Type removed */}
             </div>
           </div>

@@ -286,6 +286,15 @@ export default function PortalPage() {
     }
   ];
 
+  // Status chip color helper
+  const statusClasses = (status?: string) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'completed') return 'bg-green-100 text-green-800';
+    if (s === 'cancelled') return 'bg-red-100 text-red-800';
+    if (s === 'scheduled') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
   const renderDashboard = () => (
     <div className="space-y-6 md:space-y-8">
       {/* Welcome Section */}
@@ -354,8 +363,8 @@ export default function PortalPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-            {a.appointmentStatus}
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${statusClasses(a.appointmentStatus)}`}>
+                        {a.appointmentStatus}
                       </span>
                     </div>
                   </div>
@@ -476,12 +485,7 @@ export default function PortalPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                        String(a.appointmentStatus).toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
-                        String(a.appointmentStatus).toLowerCase() === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                        String(a.appointmentStatus).toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${statusClasses(a.appointmentStatus)}`}>
                         {a.appointmentStatus}
                       </span>
                     </div>
@@ -618,7 +622,29 @@ export default function PortalPage() {
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
-                  <button onClick={() => setSettingsOpen(true)} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setSettingsOpen(true)} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                    <button
+                      onClick={async () => {
+                        if (!user?.id) return;
+                        const confirmed = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
+                        if (!confirmed) return;
+                        try {
+                          // Optional: disable UI? Keeping it simple
+                          await userAPI.deleteUserById(user.id);
+                          // After deletion, logout and redirect to home/signin
+                          try { await authAPI.logout(); } catch {}
+                          window.location.href = '/';
+                        } catch (e) {
+                          const err = e as { response?: { data?: { message?: string } }; message?: string };
+                          alert(err?.response?.data?.message || err?.message || 'Failed to delete account');
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">

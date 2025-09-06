@@ -102,6 +102,12 @@ export const userAPI = {
     const response = await api.put(`/user/updateUser/${id}`, payload);
     return response.data;
   },
+
+  // Delete user by id (assumes backend endpoint /user/deleteUser/{id})
+  deleteUserById: async (id: string) => {
+    const response = await api.delete(`/user/deleteUser/${id}`);
+    return response.data;
+  },
 };
 
 // Doctor APIs
