@@ -380,9 +380,9 @@ export const appointmentAPI = {
     }));
   },
 
-  // Get all appointments for a particular doctor by doctorId from backend DoctorAppointmentDto
-  getDoctorAppointments: async (doctorId: string): Promise<DoctorAppointmentDto[]> => {
-    // Assumption: endpoint is prefixed with /appointment similar to user appointments
+  // Get all appointments for a particular doctor by username from backend DoctorAppointmentDto
+  getDoctorAppointments: async (doctorUsername: string): Promise<DoctorAppointmentDto[]> => {
+    // Assumption: backend expects username in the path
     type BackendDoctorAppointment = {
       appointmentId: string | number;
       appointmentStatus?: string;
@@ -392,7 +392,7 @@ export const appointmentAPI = {
       reason?: string | null;
       appointmentTime: string; // ISO string from LocalDateTime
     };
-    const response = await api.get<BackendDoctorAppointment[]>(`/appointment/getDoctorAppointments/${doctorId}`);
+    const response = await api.get<BackendDoctorAppointment[]>(`/appointment/getDoctorAppointments/${doctorUsername}`);
     const arr: BackendDoctorAppointment[] = Array.isArray(response.data) ? response.data : [];
     return arr.map((a) => ({
       appointmentId: String(a.appointmentId),

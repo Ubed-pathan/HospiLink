@@ -42,7 +42,7 @@ const statusBadge = (status?: string) => {
 };
 
 export default function DoctorAppointmentsPage() {
-  const [doctorId, setDoctorId] = React.useState<string | null>(null);
+  const [doctorUsername, setDoctorUsername] = React.useState<string | null>(null);
   const [items, setItems] = React.useState<DoctorAppointmentDto[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -51,22 +51,22 @@ export default function DoctorAppointmentsPage() {
 
   // Hydrate doctor id from global auth
   React.useEffect(() => {
-    const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; role?: string; roles?: string[] } } };
-    const candidate = w.__HOSPILINK_AUTH__?.user?.id;
-    if (candidate) setDoctorId(String(candidate));
+    const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { username?: string; role?: string; roles?: string[] } } };
+    const candidate = w.__HOSPILINK_AUTH__?.user?.username;
+    if (candidate) setDoctorUsername(String(candidate));
     const onReady = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { id?: string } } | undefined;
-      if (detail?.user?.id) setDoctorId(String(detail.user.id));
+      const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { username?: string } } | undefined;
+      if (detail?.user?.username) setDoctorUsername(String(detail.user.username));
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     return () => window.removeEventListener('hospilink-auth-ready', onReady);
   }, []);
 
-  const fetchData = React.useCallback(async (id: string) => {
+  const fetchData = React.useCallback(async (uname: string) => {
     setLoading(true);
     setError(null);
     try {
-      const list = await appointmentAPI.getDoctorAppointments(id);
+      const list = await appointmentAPI.getDoctorAppointments(uname);
       setItems(list);
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message || 'Failed to load appointments';
@@ -78,9 +78,9 @@ export default function DoctorAppointmentsPage() {
   }, []);
 
   React.useEffect(() => {
-    if (!doctorId) return;
-    fetchData(doctorId);
-  }, [doctorId, fetchData]);
+    if (!doctorUsername) return;
+    fetchData(doctorUsername);
+  }, [doctorUsername, fetchData]);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -99,7 +99,7 @@ export default function DoctorAppointmentsPage() {
           <p className="text-sm text-gray-600 mt-1">View and manage your appointments</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => doctorId && fetchData(doctorId)} disabled={loading}>
+          <Button variant="ghost" onClick={() => doctorUsername && fetchData(doctorUsername)} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
           </Button>
         </div>
