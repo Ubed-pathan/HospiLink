@@ -302,3 +302,15 @@ export interface UsersAppointmentsDto {
   appointmentTime: string;
   reason?: string;
 }
+
+// Backend Doctor Appointments DTO for a doctor's own appointments
+export interface DoctorAppointmentDto {
+  appointmentId: string;
+  appointmentStatus: string;
+  userId: string;
+  usersFullName: string;
+  userEmail: string;
+  reason?: string;
+  // ISO local datetime string (from LocalDateTime backend)
+  appointmentTime: string;
+}
