@@ -4,7 +4,7 @@
  */
 
 import api from './api';
-import { User, Doctor, Department, Appointment, AppointmentDtoForAdminDashboard } from './types';
+import { User, Doctor, Department, Appointment, AppointmentDtoForAdminDashboard, UsersAppointmentsDto } from './types';
 import type { DoctorRegisterFormData, AdminUserFormData } from './validations';
 
 // Authentication APIs
@@ -356,6 +356,22 @@ export const appointmentAPI = {
   }) => {
     const response = await api.post('/appointment/book', payload);
     return response.data;
+  },
+
+  // Get only the logged-in user's appointments with doctor info from backend DTO
+  getAppointmentsForUser: async (userId: string): Promise<UsersAppointmentsDto[]> => {
+    const response = await api.get<UsersAppointmentsDto[]>(`/appointment/getUserAppointments/${userId}`);
+    const arr = Array.isArray(response.data) ? response.data : [];
+    // Ensure minimal normalization (strings)
+    return arr.map(a => ({
+      appointmentId: String(a.appointmentId),
+      appointmentStatus: String(a.appointmentStatus || ''),
+      doctorId: String(a.doctorId || ''),
+      doctorsFullName: String(a.doctorsFullName || ''),
+      doctorSpecialization: a.doctorSpecialization ? String(a.doctorSpecialization) : undefined,
+      appointmentTime: String(a.appointmentTime as unknown as string),
+      reason: a.reason ? String(a.reason) : undefined,
+    }));
   },
 
   // Cancel appointment

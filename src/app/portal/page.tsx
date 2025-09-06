@@ -21,9 +21,10 @@ import {
 } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
-import { mockAppointments, mockNotifications, getDoctorById } from '@/lib/mockData';
+import { mockNotifications } from '@/lib/mockData';
 import { useRouter } from 'next/navigation';
-import { authAPI, userAPI } from '@/lib/api-services';
+import { authAPI, userAPI, appointmentAPI } from '@/lib/api-services';
+import type { UsersAppointmentsDto } from '@/lib/types';
 import Modal, { ModalFooter } from '@/components/ui/Modal';
 
 type WithPhoneVariants = { phone?: string | null; contactNumber?: string | null; phoneNumber?: string | null; address?: string | null };
@@ -63,6 +64,18 @@ export default function PortalPage() {
     zipCode: '',
     age: '',
   });
+
+  // Appointments state from backend (must be before any early returns)
+  const [myAppointments, setMyAppointments] = useState<UsersAppointmentsDto[] | null>(null);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
+  const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(false);
+  const parseDateTime = (dt: string | undefined): { date: string; time: string } => {
+    if (!dt) return { date: '', time: '' };
+    const normalized = dt.replace(' ', 'T');
+    const [d, t] = normalized.split('T');
+    const time = (t || '').slice(0,5);
+    return { date: d, time };
+  };
 
   // Guard: Redirect to signin when unauthenticated once loading completes
   useEffect(() => {
@@ -197,6 +210,29 @@ export default function PortalPage() {
     return () => { active = false; };
   }, [authResolved, isAuthenticated]);
 
+  // Load user's appointments from backend (must be before any early returns)
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!authResolved || !isAuthenticated || !user?.id) return;
+      try {
+        setAppointmentsLoading(true);
+        const list = await appointmentAPI.getAppointmentsForUser(user.id);
+        if (!active) return;
+        setMyAppointments(list);
+        setAppointmentsError(null);
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load appointments';
+        setAppointmentsError(msg);
+        setMyAppointments([]);
+      } finally {
+        if (active) setAppointmentsLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [authResolved, isAuthenticated, user?.id]);
+
   if (!authResolved) return null;
   if (!isAuthenticated || !user) return null;
 
@@ -207,13 +243,15 @@ export default function PortalPage() {
     avatar: user.name?.split(' ').map((n: string) => n[0]).join('') || 'U',
   };
 
-  const upcomingAppointments = mockAppointments.filter(apt => 
-    new Date(apt.date) >= new Date() && apt.status === 'scheduled'
-  );
 
-  const recentAppointments = mockAppointments.filter(apt => 
-    apt.status === 'completed'
-  ).slice(0, 3);
+  const upcomingAppointments = (myAppointments || []).filter((a) => {
+    const { date } = parseDateTime(a.appointmentTime);
+    const when = date ? new Date(date) : null;
+    const now = new Date();
+    return !!when && when >= new Date(now.toISOString().slice(0,10)) && String(a.appointmentStatus).toLowerCase() === 'scheduled';
+  });
+
+  const recentAppointments = (myAppointments || []).filter((a) => String(a.appointmentStatus).toLowerCase() === 'completed').slice(0, 3);
 
   const unreadNotifications = mockNotifications.filter(notif => !notif.isRead);
 
@@ -289,34 +327,35 @@ export default function PortalPage() {
         </div>
         
         <div className="p-4 md:p-6">
-          {upcomingAppointments.length > 0 ? (
+      {upcomingAppointments.length > 0 ? (
             <div className="space-y-3 md:space-y-4">
-              {upcomingAppointments.map(appointment => {
-                const doctor = getDoctorById(appointment.doctorId);
-                return (
-          <div key={appointment.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3">
+        {upcomingAppointments.map(a => {
+        const docName = a.doctorsFullName || 'Doctor';
+        const { date, time } = parseDateTime(a.appointmentTime);
+        return (
+      <div key={a.appointmentId} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3">
                     <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
             <div className="w-9 h-9 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-xs md:text-base">
-                        {doctor?.name.split(' ').map((n: string) => n[0]).join('')}
+            {docName.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-medium text-gray-900 text-sm md:text-base">Dr. {doctor?.name}</h3>
-                        <p className="text-xs md:text-sm text-gray-600">{doctor?.specialization}</p>
+            <h3 className="font-medium text-gray-900 text-sm md:text-base">Dr. {docName}</h3>
+            <p className="text-xs md:text-sm text-gray-600">{a.doctorSpecialization || '—'}</p>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-xs text-gray-500 mt-1">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {appointment.date}
+              {date}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {appointment.time}
+              {time}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                        {appointment.status}
+            {a.appointmentStatus}
                       </span>
                     </div>
                   </div>
@@ -349,13 +388,14 @@ export default function PortalPage() {
           <div className="p-6">
             {recentAppointments.length > 0 ? (
               <div className="space-y-3">
-                {recentAppointments.map(appointment => {
-                  const doctor = getDoctorById(appointment.doctorId);
+                {recentAppointments.map(a => {
+                  const docName = a.doctorsFullName || 'Doctor';
+                  const { date } = parseDateTime(a.appointmentTime);
                   return (
-                    <div key={appointment.id} className="flex items-center justify-between">
+                    <div key={a.appointmentId} className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">Dr. {doctor?.name}</p>
-                        <p className="text-sm text-gray-600">{appointment.date}</p>
+                        <p className="font-medium text-gray-900">Dr. {docName}</p>
+                        <p className="text-sm text-gray-600">{date}</p>
                       </div>
                       <button className="text-blue-600 hover:text-blue-700 text-sm">
                         View Details
@@ -410,40 +450,49 @@ export default function PortalPage() {
       </div>
       
       <div className="p-6">
-        <div className="space-y-4">
-          {mockAppointments.map(appointment => {
-            const doctor = getDoctorById(appointment.doctorId);
-            return (
-              <div key={appointment.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                      {doctor?.name.split(' ').map((n: string) => n[0]).join('')}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">Dr. {doctor?.name}</h3>
-                      <p className="text-sm text-gray-600">{doctor?.specialization}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
-                        <span>{appointment.date} at {appointment.time}</span>
-                        <span className="capitalize">{(appointment.type ?? '').replace('-', ' ')}</span>
+        {appointmentsLoading ? (
+          <div className="text-sm text-gray-500">Loading appointments…</div>
+        ) : appointmentsError ? (
+          <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm">{appointmentsError}</div>
+        ) : (myAppointments && myAppointments.length > 0) ? (
+          <div className="space-y-4">
+            {myAppointments.map((a) => {
+              const { date, time } = parseDateTime(a.appointmentTime);
+              const docName = a.doctorsFullName || 'Doctor';
+              return (
+                <div key={a.appointmentId} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {docName.split(' ').map((n: string) => n[0]).join('')}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">Dr. {docName}</h3>
+                        <p className="text-sm text-gray-600">{a.doctorSpecialization || '—'}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                          <span>{date} {time && `at ${time}`}</span>
+                          {a.reason && (<span className="truncate max-w-[220px]" title={a.reason}>Reason: {a.reason}</span>)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                      appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                      appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {appointment.status}
-                    </span>
+                    <div className="text-right">
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                        String(a.appointmentStatus).toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
+                        String(a.appointmentStatus).toLowerCase() === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                        String(a.appointmentStatus).toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {a.appointmentStatus}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-gray-500 text-sm">No appointments yet.</div>
+        )}
       </div>
     </div>
   );

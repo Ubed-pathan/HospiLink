@@ -8,14 +8,22 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, User, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, User, CheckCircle, ArrowLeft } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
-import { AppointmentFormData, Doctor } from '@/lib/types';
+import { Doctor } from '@/lib/types';
 import { getDepartmentById, mockAppointments } from '@/lib/mockData';
-import { doctorAPI, authAPI, userAPI, appointmentAPI } from '@/lib/api-services';
+import { doctorAPI, authAPI, appointmentAPI } from '@/lib/api-services';
 
-type BookingStep = 'doctor-selection' | 'date-time' | 'details' | 'confirmation';
+type BookingStep = 'doctor-selection' | 'date-time' | 'confirmation';
+type BookingForm = {
+  doctorId: string;
+  departmentId: string;
+  date: string;
+  time: string;
+  reasonPreset: string; // consultation | follow-up | routine-checkup | emergency | other
+  reasonOther: string;
+};
 
 function AppointmentPageInner() {
   const searchParams = useSearchParams();
@@ -26,14 +34,13 @@ function AppointmentPageInner() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState<boolean>(true);
   const [doctorsError, setDoctorsError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<AppointmentFormData>({
+  const [formData, setFormData] = useState<BookingForm>({
     doctorId: '',
     departmentId: '',
     date: todayStr,
     time: '',
-    type: 'consultation',
-    symptoms: '',
-    notes: ''
+    reasonPreset: '',
+    reasonOther: '',
   });
   type UserWithFullName = {
     id?: string;
@@ -394,60 +401,33 @@ function AppointmentPageInner() {
 
       <div>
         <label className="block text-sm font-medium text-gray-800 mb-2">
-          Appointment Type
+          Reason
         </label>
         <select
-          value={formData.type}
-          onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+          value={formData.reasonPreset}
+          onChange={(e) => setFormData(prev => ({ ...prev, reasonPreset: e.target.value }))}
           className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900"
         >
-          <option value="consultation">Consultation</option>
-          <option value="follow-up">Follow-up</option>
-          <option value="routine-checkup">Routine Checkup</option>
-          <option value="emergency">Emergency</option>
+          <option value="">Select a reason</option>
+          <option value="Consultation">Consultation</option>
+          <option value="Follow-up">Follow-up</option>
+          <option value="Routine Checkup">Routine Checkup</option>
+          <option value="Emergency">Emergency</option>
+          <option value="other">Other</option>
         </select>
       </div>
-
-      <button
-        onClick={() => setCurrentStep('details')}
-        disabled={!formData.date || !formData.time}
-        className="w-full bg-blue-600 text-white py-2 md:py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
-      >
-        Continue
-      </button>
-    </div>
-  );
-
-  const renderDetailsForm = () => (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <button
-          onClick={() => setCurrentStep('date-time')}
-          className="text-blue-600 hover:text-blue-700"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h2 className="text-2xl font-bold text-gray-900">Appointment Details</h2>
-      </div>
-
-      {bookError && (
-        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold" role="alert">
-          {bookError}
+      {formData.reasonPreset === 'other' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-800 mb-2">Other Reason</label>
+          <input
+            type="text"
+            value={formData.reasonOther}
+            onChange={(e) => setFormData(prev => ({ ...prev, reasonOther: e.target.value }))}
+            placeholder="Type your reason"
+            className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900"
+          />
         </div>
       )}
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Symptoms / Reason for Visit *
-        </label>
-        <textarea
-          value={formData.symptoms}
-          onChange={(e) => setFormData(prev => ({ ...prev, symptoms: e.target.value }))}
-          rows={4}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
-          placeholder="Please describe your symptoms or reason for the appointment..."
-        />
-      </div>
 
       {/* Ask for email if we don't have it from auth */}
       {!(me?.email) && (
@@ -460,46 +440,26 @@ function AppointmentPageInner() {
             value={emailOverride}
             onChange={(e) => setEmailOverride(e.target.value)}
             placeholder="you@example.com"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
+            className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900"
           />
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Additional Notes (Optional)
-        </label>
-        <textarea
-          value={formData.notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-          rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-300 text-black placeholder:text-gray-400"
-          placeholder="Any additional information you'd like the doctor to know..."
-        />
-      </div>
-
       <button
         onClick={async () => {
-          if (!selectedDoctor || !formData.date || !formData.time) {
-            setBookError('Please select a doctor, date and time.');
-            return;
-          }
+          if (!selectedDoctor || !formData.date || !formData.time) return;
+          const preset = formData.reasonPreset;
+          const hasOther = preset === 'other';
+          const reasonRaw = hasOther ? formData.reasonOther.trim() : preset;
+          if (!reasonRaw) return;
           try {
             setBookError(null);
             setBooking(true);
-            // Ensure we have current user; lazy load if missing
             let user = me;
             if (!user) {
               try {
                 const r = await authAPI.loadOnRefresh();
-                const u = (r?.user || r) as {
-                  id?: string;
-                  email?: string;
-                  username?: string;
-                  firstName?: string;
-                  middleName?: string;
-                  lastName?: string;
-                } | null;
+                const u = (r?.user || r) as { id?: string; email?: string; username?: string; firstName?: string; middleName?: string; lastName?: string } | null;
                 const fn = [u?.firstName, u?.middleName, u?.lastName].filter(Boolean).join(' ').trim();
                 user = {
                   id: u?.id,
@@ -518,33 +478,15 @@ function AppointmentPageInner() {
               setBooking(false);
               return;
             }
-            // Ensure email is present; fallback to profile endpoint or use override
-            let userEmail = (emailOverride || '').trim() || user.email || '';
-            if (!userEmail) {
-              try {
-                const profile = await userAPI.getProfile();
-                userEmail = profile?.email || '';
-                // also populate name/fullName/username from profile if missing
-                if (profile) {
-                  user = {
-                    ...user,
-                    name: user.name || profile.name,
-                    fullName: user.fullName || (profile as { fullName?: string }).fullName,
-                    username: user.username || (profile as { username?: string }).username,
-                  };
-                }
-              } catch {
-                // ignore, will validate below
-              }
-            }
+            // Ensure email is present; use override if needed
+            const userEmail = (emailOverride || '').trim() || user.email || '';
             if (!userEmail || !userEmail.includes('@')) {
-              setBookError('Your account email is missing. Please update your email in Settings before booking.');
+              setBookError('Please enter a valid email to continue.');
               setBooking(false);
               return;
             }
             const appointmentTime = `${formData.date}T${formData.time}:00`;
-            const reason = (formData.symptoms || 'Consultation').slice(0, 250);
-            // Prefer fullName, then name, then username, then email local-part
+            const reason = reasonRaw.slice(0, 250);
             const usersFullName = (
               (user.fullName && user.fullName.trim()) ||
               (user.name && user.name.trim()) ||
@@ -568,13 +510,15 @@ function AppointmentPageInner() {
             setBooking(false);
           }
         }}
-        disabled={!formData.symptoms.trim() || booking}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!formData.date || !formData.time || !((formData.reasonPreset && formData.reasonPreset !== 'other') || (formData.reasonPreset === 'other' && formData.reasonOther.trim())) || booking || (!me?.email && !emailOverride)}
+        className="w-full bg-blue-600 text-white py-2 md:py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
       >
         {booking ? 'Booking…' : 'Confirm Appointment'}
       </button>
     </div>
   );
+
+  // Details step removed
 
   // Payment step removed
 
@@ -600,7 +544,7 @@ function AppointmentPageInner() {
               <div><span className="font-semibold text-gray-700">Date:</span> <span className="text-gray-900">{formData.date}</span></div>
               <div><span className="font-semibold text-gray-700">Time:</span> <span className="text-gray-900">{formData.time}</span></div>
               <div><span className="font-semibold text-gray-700">Location:</span> <span className="text-gray-900">{selectedDoctor?.location}</span></div>
-              <div><span className="font-semibold text-gray-700">Type:</span> <span className="text-gray-900">{formData.type.replace('-', ' ')}</span></div>
+              {/* Type removed */}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -654,12 +598,13 @@ function AppointmentPageInner() {
                 [
                   { key: 'doctor-selection', label: 'Select Doctor', icon: User },
                   { key: 'date-time', label: 'Date & Time', icon: Calendar },
-                  { key: 'details', label: 'Details', icon: FileText },
                   { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
                 ] as const
               ).map((step, index, steps) => {
                 const isActive = currentStep === step.key;
-                const isCompleted = ['doctor-selection', 'date-time', 'details'].indexOf(currentStep) > index;
+                const order = steps.findIndex(s => s.key === step.key);
+                const currentOrder = steps.findIndex(s => s.key === currentStep);
+                const isCompleted = currentOrder > order;
                 
                 return (
                   <div key={step.key} className="flex items-center">
@@ -700,7 +645,6 @@ function AppointmentPageInner() {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border p-4 sm:p-6 md:p-8">
             {currentStep === 'doctor-selection' && renderDoctorSelection()}
             {currentStep === 'date-time' && renderDateTimeSelection()}
-            {currentStep === 'details' && renderDetailsForm()}
             {currentStep === 'confirmation' && renderConfirmation()}
           </div>
         </div>

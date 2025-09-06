@@ -290,3 +290,15 @@ export interface AppointmentDtoForAdminDashboard {
   doctorsEmail?: string;
   reason?: string;
 }
+
+// Backend Users Appointments DTO for a user's own appointments
+export interface UsersAppointmentsDto {
+  appointmentId: string;
+  appointmentStatus: string;
+  doctorId: string;
+  doctorsFullName: string;
+  doctorSpecialization?: string;
+  // ISO local or UTC string (LocalDateTime on backend). Treat as string.
+  appointmentTime: string;
+  reason?: string;
+}
