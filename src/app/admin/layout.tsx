@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
   <div className="min-h-screen bg-white">
-  <RequireRole role="admin" fallbackHref="/">
+  <RequireRole role="admin" fallbackHref="/auth/signin">
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">

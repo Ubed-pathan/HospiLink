@@ -9,21 +9,26 @@ export default function RouteGuard() {
   const handledRef = useRef(false);
 
   useEffect(() => {
-    // Landing page (/) must be visible to everyone, even unauthenticated (prevents logout flicker).
+  // Landing page (/) must redirect unauthenticated users to sign-in.
     // Enforce guard for the /doctor area (main guard is RequireRole; this is extra safety and handles post-logout UX).
     const maybeRedirect = (isAuthenticated: boolean | undefined, user?: { role?: 'patient' | 'doctor' | 'admin'; roles?: Array<'patient' | 'doctor' | 'admin'> }) => {
       if (handledRef.current) return;
       if (typeof isAuthenticated === 'undefined') return;
       // Landing page behavior:
-      // - Always allow staying on landing page, regardless of auth
+      // - If unauthenticated, send to sign-in (post-logout experience)
       if (pathname === '/') {
+        if (!isAuthenticated) {
+          handledRef.current = true;
+          router.replace('/auth/signin');
+          return;
+        }
         return;
       }
 
       // Block /doctor for non-doctors and unauthenticated users with nuanced behavior:
       // - If unauthenticated, send to sign-in
       // - If authenticated but not a doctor, send to landing
-      if (pathname.startsWith('/doctor')) {
+    if (pathname.startsWith('/doctor')) {
         const roles = user?.roles || [];
         const isDoctor = !!(user?.role === 'doctor' || roles.includes('doctor'));
         if (!isAuthenticated) {

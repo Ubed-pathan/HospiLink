@@ -103,7 +103,7 @@ export default function PortalPage() {
 
   useEffect(() => {
     if (!authResolved) return;
-  if (!isAuthenticated) router.replace('/');
+  if (!isAuthenticated) router.replace('/auth/signin');
   }, [authResolved, isAuthenticated, router]);
 
   // Load user data once authenticated (from loadOnRefresh only)
@@ -635,11 +635,7 @@ export default function PortalPage() {
                           setDeleting(true);
                           await userAPI.deleteUserById(user.id);
                           try { await authAPI.logout(); } catch {}
-                          try {
-                            (window as unknown as { __HOSPILINK_AUTH__?: { isAuthenticated: boolean; user?: unknown } }).__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null as unknown as undefined } as unknown as { isAuthenticated: boolean; user?: unknown };
-                            window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
-                          } catch {}
-                          window.location.href = '/';
+                          window.location.href = '/auth/signin';
                         } catch (e) {
                           const err = e as { response?: { data?: { message?: string } }; message?: string };
                           alert(err?.response?.data?.message || err?.message || 'Failed to delete account');

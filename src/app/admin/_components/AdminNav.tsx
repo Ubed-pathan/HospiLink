@@ -29,11 +29,7 @@ export default function AdminNav() {
     try {
       await authAPI.logout();
     } finally {
-      try {
-        (window as unknown as { __HOSPILINK_AUTH__?: { isAuthenticated: boolean; user?: unknown } }).__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null as unknown as undefined } as unknown as { isAuthenticated: boolean; user?: unknown };
-        window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
-      } catch {}
-      router.replace('/');
+      router.replace('/auth/signin');
     }
   };
 

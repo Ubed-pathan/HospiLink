@@ -22,15 +22,7 @@ export default function NavHeader() {
       setLoggingOut(true);
       await authAPI.logout();
     } finally {
-      try {
-        // Clear in-memory auth and broadcast unauthenticated before navigating
-        (window as unknown as { __HOSPILINK_AUTH__?: { isAuthenticated: boolean; user?: unknown } }).__HOSPILINK_AUTH__ = {
-          isAuthenticated: false,
-          user: null as unknown as undefined,
-        } as unknown as { isAuthenticated: boolean; user?: unknown };
-        window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
-      } catch {}
-      router.replace('/');
+  router.replace('/auth/signin');
       setLoggingOut(false);
     }
   };
