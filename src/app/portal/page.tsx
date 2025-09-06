@@ -18,6 +18,7 @@ import {
   Pill,
   Download,
   Activity,
+  Trash2,
 } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
@@ -50,6 +51,7 @@ export default function PortalPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     firstName: '',
     middleName: '',
@@ -101,7 +103,7 @@ export default function PortalPage() {
 
   useEffect(() => {
     if (!authResolved) return;
-    if (!isAuthenticated) router.replace('/auth/signin');
+  if (!isAuthenticated) router.replace('/');
   }, [authResolved, isAuthenticated, router]);
 
   // Load user data once authenticated (from loadOnRefresh only)
@@ -626,23 +628,30 @@ export default function PortalPage() {
                     <button onClick={() => setSettingsOpen(true)} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
                     <button
                       onClick={async () => {
-                        if (!user?.id) return;
+                        if (!user?.id || deleting) return;
                         const confirmed = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
                         if (!confirmed) return;
                         try {
-                          // Optional: disable UI? Keeping it simple
+                          setDeleting(true);
                           await userAPI.deleteUserById(user.id);
-                          // After deletion, logout and redirect to home/signin
                           try { await authAPI.logout(); } catch {}
+                          try {
+                            (window as unknown as { __HOSPILINK_AUTH__?: { isAuthenticated: boolean; user?: unknown } }).__HOSPILINK_AUTH__ = { isAuthenticated: false, user: null as unknown as undefined } as unknown as { isAuthenticated: boolean; user?: unknown };
+                            window.dispatchEvent(new CustomEvent('hospilink-auth-ready', { detail: { isAuthenticated: false, user: null } }));
+                          } catch {}
                           window.location.href = '/';
                         } catch (e) {
                           const err = e as { response?: { data?: { message?: string } }; message?: string };
                           alert(err?.response?.data?.message || err?.message || 'Failed to delete account');
+                        } finally {
+                          setDeleting(false);
                         }
                       }}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      disabled={deleting}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
                     >
-                      Delete Account
+                      <Trash2 className="w-4 h-4" />
+                      {deleting ? 'Deleting…' : 'Delete Account'}
                     </button>
                   </div>
                 </div>

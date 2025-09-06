@@ -6,7 +6,7 @@ import RequireRole from '@/components/providers/RequireRole';
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
-  <RequireRole role="doctor" fallbackHref="/auth/signin">
+  <RequireRole role="doctor" fallbackHref="/">
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
