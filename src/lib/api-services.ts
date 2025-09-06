@@ -96,6 +96,12 @@ export const userAPI = {
     });
     return response.data;
   },
+
+  // Update user by id using backend endpoint /user//updateUser/{id}
+  updateUserById: async (id: string, payload: Record<string, unknown>) => {
+    const response = await api.put(`/user/updateUser/${id}`, payload);
+    return response.data;
+  },
 };
 
 // Doctor APIs

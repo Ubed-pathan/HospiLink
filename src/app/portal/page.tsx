@@ -50,12 +50,18 @@ export default function PortalPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
     email: '',
     phone: '',
-    dateOfBirth: '',
     gender: '' as '' | 'male' | 'female' | 'other',
     address: '',
+    city: '',
+    state: '',
+    country: '',
+    zipCode: '',
+    age: '',
   });
 
   // Guard: Redirect to signin when unauthenticated once loading completes
@@ -85,7 +91,7 @@ export default function PortalPage() {
     if (!isAuthenticated) router.replace('/auth/signin');
   }, [authResolved, isAuthenticated, router]);
 
-  // Load full profile once authenticated
+  // Load user data once authenticated (from loadOnRefresh only)
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -95,6 +101,9 @@ export default function PortalPage() {
           id: '',
           email: '',
           displayName: '',
+          firstName: '',
+          middleName: '',
+          lastName: '',
           username: '',
           phoneNumber: '',
           address: '',
@@ -130,6 +139,9 @@ export default function PortalPage() {
               id: String(u.id || ''),
               email: String(u.email || ''),
               displayName,
+              firstName: u?.firstName || '',
+              middleName: u?.middleName || '',
+              lastName: u?.lastName || '',
               username: u?.username || '',
               phoneNumber: u?.phoneNumber || '',
               address: u?.address || '',
@@ -152,16 +164,30 @@ export default function PortalPage() {
             setAuthGender(refresh.gender);
           }
         } catch {}
-        const p = await userAPI.getProfile();
         if (!active) return;
-        setProfile(p);
+        // Synthesize a lightweight profile object from refresh data
+        const synthesizedProfile: Partial<import('@/lib/types').User> = {
+          name: refresh.displayName,
+          email: refresh.email,
+          address: refresh.address,
+          gender: toGender(refresh.gender) || undefined,
+          phone: refresh.phoneNumber || undefined,
+          contactNumber: refresh.phoneNumber || undefined,
+        };
+        setProfile(synthesizedProfile as import('@/lib/types').User);
         setForm({
-          name: p.name || refresh.displayName || '',
-          email: p.email || refresh.email || '',
-          phone: getPhone(p as unknown as WithPhoneVariants) || refresh.phoneNumber || '',
-          dateOfBirth: p.dateOfBirth || '',
-          gender: toGender(p.gender || refresh.gender),
-          address: p.address || refresh.address || '',
+          firstName: refresh.firstName || '',
+          middleName: refresh.middleName || '',
+          lastName: refresh.lastName || '',
+          email: refresh.email || '',
+          phone: refresh.phoneNumber || '',
+          gender: toGender(refresh.gender),
+          address: refresh.address || '',
+          city: refresh.city || '',
+          state: refresh.state || '',
+          country: refresh.country || '',
+          zipCode: refresh.zipCode || '',
+          age: typeof refresh.age === 'number' ? String(refresh.age) : '',
         });
       } catch {
         // ignore
@@ -563,10 +589,6 @@ export default function PortalPage() {
                     <div className="text-gray-900 font-medium">{getPhone(profile as unknown as WithPhoneVariants) || authPhone || '—'}</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-xs text-gray-500">Date of Birth</div>
-                    <div className="text-gray-900 font-medium">{profile?.dateOfBirth || '—'}</div>
-                  </div>
-                  <div className="p-4 border rounded-lg">
                     <div className="text-xs text-gray-500">Gender</div>
                     <div className="text-gray-900 font-medium capitalize">{profile?.gender || authGender || '—'}</div>
                   </div>
@@ -611,13 +633,33 @@ export default function PortalPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                 <input
                   type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  value={form.firstName}
+                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
-                  placeholder="Your full name"
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                <input
+                  type="text"
+                  value={form.middleName}
+                  onChange={(e) => setForm({ ...form, middleName: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Middle name (optional)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={form.lastName}
+                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Last name"
                 />
               </div>
               <div>
@@ -650,15 +692,7 @@ export default function PortalPage() {
                   placeholder="10-digit phone"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <input
-                  type="date"
-                  value={form.dateOfBirth}
-                  onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-0 focus:border-blue-300"
-                />
-              </div>
+              {/* Date of Birth removed */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                 <select
@@ -682,6 +716,58 @@ export default function PortalPage() {
                   placeholder="Street, City, State, ZIP"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="City"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                <input
+                  type="text"
+                  value={form.state}
+                  onChange={(e) => setForm({ ...form, state: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="State"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <input
+                  type="text"
+                  value={form.country}
+                  onChange={(e) => setForm({ ...form, country: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Country"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
+                <input
+                  type="text"
+                  value={form.zipCode}
+                  onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="ZIP / Postal code"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={form.age}
+                  onChange={(e) => setForm({ ...form, age: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-blue-300"
+                  placeholder="Age"
+                />
+              </div>
             </div>
             {saveError && (
               <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm">{saveError}</div>
@@ -701,16 +787,83 @@ export default function PortalPage() {
                 try {
                   setSaving(true);
                   setSaveError(null);
-                  const payload: Partial<import('@/lib/types').User> = {
-                    name: form.name?.trim() || undefined,
-                    phone: form.phone?.trim() || undefined,
-                    contactNumber: form.phone?.trim() || undefined,
-                    dateOfBirth: form.dateOfBirth || undefined,
+                  const payload: Record<string, unknown> = {
+                    firstName: form.firstName?.trim() || undefined,
+                    middleName: form.middleName?.trim() || undefined,
+                    lastName: form.lastName?.trim() || undefined,
+                    phoneNumber: form.phone?.trim() || undefined,
                     gender: form.gender || undefined,
                     address: form.address?.trim() || undefined,
+                    city: form.city?.trim() || undefined,
+                    state: form.state?.trim() || undefined,
+                    country: form.country?.trim() || undefined,
+                    zipCode: form.zipCode?.trim() || undefined,
+                    age: form.age?.trim() ? Number(form.age.trim()) : undefined,
                   };
-                  const updated = await userAPI.updateProfile(payload);
-                  setProfile(updated);
+                  type UpdateResp = {
+                    id?: string;
+                    email?: string;
+                    username?: string;
+                    firstName?: string;
+                    middleName?: string;
+                    lastName?: string;
+                    phoneNumber?: string;
+                    address?: string;
+                    city?: string;
+                    state?: string;
+                    country?: string;
+                    zipCode?: string;
+                    age?: number;
+                    gender?: string | null;
+                  };
+                  const updated = (await userAPI.updateUserById(user.id, payload)) as UpdateResp;
+                  const updatedName = [updated.firstName, updated.middleName, updated.lastName]
+                    .filter(Boolean)
+                    .join(' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                  // Update header/current user
+                  setUser((prev) => (prev ? {
+                    id: prev.id,
+                    name: updatedName || prev.name,
+                    email: updated.email ?? prev.email,
+                  } : prev));
+                  // Update auth details used for profile display fallbacks
+                  if (updated.username) setAuthUsername(updated.username);
+                  if (typeof updated.age === 'number') setAuthAge(updated.age);
+                  if (updated.gender !== undefined && updated.gender !== null) setAuthGender(String(updated.gender));
+                  if (updated.phoneNumber !== undefined) setAuthPhone(updated.phoneNumber || '');
+                  if (updated.address !== undefined) setAuthAddress(updated.address || '');
+                  if (updated.city !== undefined) setAuthCity(updated.city || '');
+                  if (updated.state !== undefined) setAuthStateName(updated.state || '');
+                  if (updated.country !== undefined) setAuthCountry(updated.country || '');
+                  if (updated.zipCode !== undefined) setAuthZip(updated.zipCode || '');
+                  // Update profile object
+                  setProfile((prev) => ({
+                    ...(prev || {}),
+                    name: updatedName || prev?.name || '',
+                    email: updated.email ?? user.email,
+                    phone: updated.phoneNumber ?? prev?.phone,
+                    contactNumber: updated.phoneNumber ?? prev?.contactNumber,
+                    gender: toGender(updated.gender) || prev?.gender,
+                    address: updated.address ?? prev?.address ?? '',
+                  } as import('@/lib/types').User));
+                  // Sync form with returned values
+                  const newGender = toGender(updated.gender) || form.gender;
+                  setForm({
+                    firstName: updated.firstName ?? form.firstName,
+                    middleName: updated.middleName ?? form.middleName,
+                    lastName: updated.lastName ?? form.lastName,
+                    email: updated.email ?? form.email,
+                    phone: updated.phoneNumber ?? form.phone,
+                    gender: newGender,
+                    address: updated.address ?? form.address,
+                    city: updated.city ?? form.city,
+                    state: updated.state ?? form.state,
+                    country: updated.country ?? form.country,
+                    zipCode: updated.zipCode ?? form.zipCode,
+                    age: typeof updated.age === 'number' ? String(updated.age) : form.age,
+                  });
                   setSettingsOpen(false);
                 } catch (e) {
                   const err = e as { response?: { data?: { message?: string } }; message?: string };
