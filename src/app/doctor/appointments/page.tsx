@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { appointmentAPI } from '@/lib/api-services';
 import type { DoctorAppointmentDto } from '@/lib/types';
-import { CalendarDays, Mail, User as UserIcon, Search, RefreshCcw, Check, X } from 'lucide-react';
+import { CalendarDays, Mail, User as UserIcon, Search, RefreshCcw, Check, X, Loader2 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'scheduled' | 'completed' | 'cancelled';
 
@@ -48,6 +48,7 @@ export default function DoctorAppointmentsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<StatusFilter>('all');
   const [query, setQuery] = React.useState('');
+  const [rowBusy, setRowBusy] = React.useState<Record<string, 'complete' | 'cancel' | null>>({});
 
   // Hydrate doctor id from global auth
   React.useEffect(() => {
@@ -81,6 +82,35 @@ export default function DoctorAppointmentsPage() {
     if (!doctorUsername) return;
     fetchData(doctorUsername);
   }, [doctorUsername, fetchData]);
+
+  const handleComplete = async (id: string) => {
+    setRowBusy((m) => ({ ...m, [id]: 'complete' }));
+    try {
+      await appointmentAPI.completeAppointmentById(id);
+      setItems((list) => list.map((it) => (it.appointmentId === id ? { ...it, appointmentStatus: 'COMPLETED' } : it)));
+    } catch (e) {
+      // Surface a lightweight inline error via state banner
+      const msg = (e as { message?: string })?.message || 'Failed to complete appointment';
+      setError(msg);
+    } finally {
+      setRowBusy((m) => ({ ...m, [id]: null }));
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    const confirmed = window.confirm('Cancel this appointment?');
+    if (!confirmed) return;
+    setRowBusy((m) => ({ ...m, [id]: 'cancel' }));
+    try {
+      await appointmentAPI.cancelAppointmentById(id);
+      setItems((list) => list.map((it) => (it.appointmentId === id ? { ...it, appointmentStatus: 'CANCELLED' } : it)));
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || 'Failed to cancel appointment';
+      setError(msg);
+    } finally {
+      setRowBusy((m) => ({ ...m, [id]: null }));
+    }
+  };
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -168,6 +198,11 @@ export default function DoctorAppointmentsPage() {
               ) : (
                 filtered.map((a) => {
                   const dt = formatDateTime12h(a.appointmentTime);
+                  const isCompleting = rowBusy[a.appointmentId] === 'complete';
+                  const isCancelling = rowBusy[a.appointmentId] === 'cancel';
+                  const sLower = (a.appointmentStatus || '').toLowerCase();
+                  const canComplete = sLower !== 'completed' && !isCompleting;
+                  const canCancel = sLower !== 'cancelled' && !isCancelling;
                   return (
                     <tr key={a.appointmentId} className="border-b last:border-0">
                       <td className="py-2.5 px-3 text-gray-900">{dt.date}</td>
@@ -191,12 +226,26 @@ export default function DoctorAppointmentsPage() {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            className="bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500/30"
+                            disabled={!canComplete}
+                            onClick={() => handleComplete(a.appointmentId)}
+                            className={`bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 ${isCompleting ? 'cursor-wait' : ''}`}
                           >
-                            <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5" />Complete</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              {isCompleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                              {isCompleting ? 'Completing…' : 'Complete'}
+                            </span>
                           </Button>
-                          <Button size="sm" variant="destructive">
-                            <span className="inline-flex items-center gap-1.5"><X className="w-3.5 h-3.5" />Cancel</span>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={!canCancel}
+                            onClick={() => handleCancel(a.appointmentId)}
+                            className={isCancelling ? 'cursor-wait' : ''}
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                              {isCancelling ? 'Cancelling…' : 'Cancel'}
+                            </span>
                           </Button>
                         </div>
                       </td>

@@ -412,15 +412,15 @@ export const appointmentAPI = {
   },
 
   // Doctor actions (backend-provided endpoints)
-  // Complete appointment by id: PUT /appointment/completeAppointment/{appointmentId}
+  // Complete appointment by id: PATCH /appointment/completeAppointment/{appointmentId}
   completeAppointmentById: async (id: string) => {
-    const response = await api.put(`/appointment/completeAppointment/${id}`);
+    const response = await api.patch(`/appointment/completeAppointment/${id}`);
     return response.data;
   },
 
-  // Cancel appointment by id: PUT /appointment/cancelAppointment/{appointmentId}
+  // Cancel appointment by id: PATCH /appointment/cancelAppointment/{appointmentId}
   cancelAppointmentById: async (id: string) => {
-    const response = await api.put(`/appointment/cancelAppointment/${id}`);
+    const response = await api.patch(`/appointment/cancelAppointment/${id}`);
     return response.data;
   },
 
