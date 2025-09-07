@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { appointmentAPI } from '@/lib/api-services';
 import type { DoctorAppointmentDto } from '@/lib/types';
-import { CalendarDays, Mail, User as UserIcon, Search } from 'lucide-react';
+import { CalendarDays, Mail, User as UserIcon, Search, RefreshCcw, Check, X } from 'lucide-react';
 
 type StatusFilter = 'all' | 'scheduled' | 'completed' | 'cancelled';
 
@@ -99,7 +99,15 @@ export default function DoctorAppointmentsPage() {
           <p className="text-sm text-gray-600 mt-1">View and manage your appointments</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => doctorUsername && fetchData(doctorUsername)} disabled={loading}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => doctorUsername && fetchData(doctorUsername)}
+            disabled={loading}
+            title="Refresh appointments"
+            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 px-3 py-1.5 text-gray-700 shadow-sm hover:bg-white hover:shadow focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+          >
+            <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : 'text-gray-500'}`} />
             {loading ? 'Refreshing…' : 'Refresh'}
           </Button>
         </div>
@@ -169,7 +177,7 @@ export default function DoctorAppointmentsPage() {
                           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700"><UserIcon className="w-4 h-4" /></span>
                           <div>
                             <div className="font-medium text-gray-900">{a.usersFullName || '—'}</div>
-                            <div className="text-xs text-gray-500 inline-flex items-center gap-1"><Mail className="w-3 h-3" />{a.userEmail || '—'}</div>
+                            <div className="text-xs text-gray-600 inline-flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{a.userEmail || '—'}</div>
                           </div>
                         </div>
                       </td>
@@ -181,8 +189,15 @@ export default function DoctorAppointmentsPage() {
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="ghost" disabled>Complete</Button>
-                          <Button size="sm" variant="destructive" disabled>Cancel</Button>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500/30"
+                          >
+                            <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5" />Complete</span>
+                          </Button>
+                          <Button size="sm" variant="destructive">
+                            <span className="inline-flex items-center gap-1.5"><X className="w-3.5 h-3.5" />Cancel</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>

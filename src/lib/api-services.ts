@@ -411,6 +411,19 @@ export const appointmentAPI = {
     return response.data;
   },
 
+  // Doctor actions (backend-provided endpoints)
+  // Complete appointment by id: PUT /appointment/completeAppointment/{appointmentId}
+  completeAppointmentById: async (id: string) => {
+    const response = await api.put(`/appointment/completeAppointment/${id}`);
+    return response.data;
+  },
+
+  // Cancel appointment by id: PUT /appointment/cancelAppointment/{appointmentId}
+  cancelAppointmentById: async (id: string) => {
+    const response = await api.put(`/appointment/cancelAppointment/${id}`);
+    return response.data;
+  },
+
   // Reschedule appointment
   rescheduleAppointment: async (id: string, newDate: string, newTimeSlot: string): Promise<Appointment> => {
     const response = await api.put(`/appointments/${id}/reschedule`, {
