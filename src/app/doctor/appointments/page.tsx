@@ -201,8 +201,10 @@ export default function DoctorAppointmentsPage() {
                   const isCompleting = rowBusy[a.appointmentId] === 'complete';
                   const isCancelling = rowBusy[a.appointmentId] === 'cancel';
                   const sLower = (a.appointmentStatus || '').toLowerCase();
-                  const canComplete = sLower !== 'completed' && !isCompleting;
-                  const canCancel = sLower !== 'cancelled' && !isCancelling;
+                  const isCompleted = sLower === 'completed';
+                  const isCancelled = sLower === 'cancelled';
+                  const canComplete = !(isCompleted || isCancelled) && !isCompleting;
+                  const canCancel = !(isCompleted || isCancelled) && !isCancelling;
                   return (
                     <tr key={a.appointmentId} className="border-b last:border-0">
                       <td className="py-2.5 px-3 text-gray-900">{dt.date}</td>
@@ -224,29 +226,33 @@ export default function DoctorAppointmentsPage() {
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            disabled={!canComplete}
-                            onClick={() => handleComplete(a.appointmentId)}
-                            className={`bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 ${isCompleting ? 'cursor-wait' : ''}`}
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              {isCompleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                              {isCompleting ? 'Completing…' : 'Complete'}
-                            </span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={!canCancel}
-                            onClick={() => handleCancel(a.appointmentId)}
-                            className={isCancelling ? 'cursor-wait' : ''}
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                              {isCancelling ? 'Cancelling…' : 'Cancel'}
-                            </span>
-                          </Button>
+                          {!isCompleted && !isCancelled && (
+                            <Button
+                              size="sm"
+                              disabled={!canComplete}
+                              onClick={() => handleComplete(a.appointmentId)}
+                              className={`bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 ${isCompleting ? 'cursor-wait' : ''}`}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                {isCompleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                {isCompleting ? 'Completing…' : 'Complete'}
+                              </span>
+                            </Button>
+                          )}
+                          {!isCompleted && !isCancelled && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={!canCancel}
+                              onClick={() => handleCancel(a.appointmentId)}
+                              className={isCancelling ? 'cursor-wait' : ''}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                                {isCancelling ? 'Cancelling…' : 'Cancel'}
+                              </span>
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
