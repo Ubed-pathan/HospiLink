@@ -12,7 +12,7 @@ import { Calendar, User, CheckCircle, ArrowLeft } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { Doctor } from '@/lib/types';
-import { getDepartmentById, mockAppointments } from '@/lib/mockData';
+import { getDepartmentById } from '@/lib/mockData';
 import { doctorAPI, authAPI, appointmentAPI } from '@/lib/api-services';
 
 type BookingStep = 'doctor-selection' | 'date-time' | 'confirmation';
@@ -171,25 +171,21 @@ function AppointmentPageInner() {
     return `${hh}:${mm} ${ampm}`;
   };
 
-  // Generate 15-min slots from 10:30 to 17:30, excluding break 14:30–15:00
+  // Generate generic 15-min slots from 09:00 to end-of-day (ignore doctor-specific times)
   const generateScheduledSlots = React.useCallback((): string[] => {
-    const START = '10:30';
-    const END = '17:30';
-    const BREAK_START = '14:30';
-    const BREAK_END = '15:00';
-    const STEP = 15;
+    const START = '09:00';
+    const END = '24:00'; // we'll append 23:59 specifically below
+    const STEP = 15; // minutes
 
     const startM = toMinutes(START);
     const endM = toMinutes(END);
-    const breakStartM = toMinutes(BREAK_START);
-    const breakEndM = toMinutes(BREAK_END);
 
     const slots: string[] = [];
     for (let t = startM; t < endM; t += STEP) {
-      // Skip times within the break window [breakStart, breakEnd)
-      if (t >= breakStartM && t < breakEndM) continue;
       slots.push(toHHMM(t));
     }
+    // Ensure we include a final 23:59 option
+    if (slots[slots.length - 1] !== '23:59') slots.push('23:59');
     return slots;
   }, []);
 
@@ -199,13 +195,7 @@ function AppointmentPageInner() {
     return generateScheduledSlots();
   }, [generateScheduledSlots]);
 
-  const bookedTimesToday = React.useMemo(() => {
-    if (!selectedDoctorId) return new Set<string>();
-    const booked = mockAppointments
-      .filter((a) => a.doctorId === selectedDoctorId && a.date === todayStr && !!a.time)
-      .map((a) => a.time as string);
-    return new Set(booked);
-  }, [selectedDoctorId, todayStr]);
+  // We are intentionally not checking doctor-specific booked times for now
 
   const renderDoctorSelection = () => (
     <div className="space-y-6 md:space-y-8">
@@ -360,29 +350,25 @@ function AppointmentPageInner() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {todaysSlots.map((time) => {
                 const nowHM = new Date().toTimeString().slice(0, 5);
-                const isBooked = bookedTimesToday.has(time);
                 const isPast = time < nowHM;
-                const isSelected = formData.time === time && !isBooked && !isPast;
+                const isSelected = formData.time === time && !isPast;
                 const base = 'px-2 py-1.5 rounded-md text-xs sm:text-sm border transition-colors text-center';
-                const classes = isBooked
-                  ? 'bg-blue-100 text-blue-700 border-blue-300 cursor-not-allowed'
-                  : isPast
-                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                    : isSelected
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
+                const classes = isPast
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : isSelected
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
                 return (
                   <button
                     type="button"
                     key={time}
-                    disabled={isBooked || isPast}
+                    disabled={isPast}
                     className={`${base} ${classes}`}
                     onClick={() => setFormData((prev) => ({ ...prev, time }))}
                     aria-pressed={isSelected}
-                    aria-label={`Time ${time}${isBooked ? ' (Booked)' : ''}`}
+                    aria-label={`Time ${time}`}
                   >
                     {time}
-                    {isBooked && <span className="sr-only"> Booked</span>}
                   </button>
                 );
               })}
@@ -390,10 +376,6 @@ function AppointmentPageInner() {
           )}
           {todaysSlots.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-300" />
-                <span className="text-gray-600">Booked</span>
-              </div>
               <div className="flex items-center gap-2">
                 <span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-200" />
                 <span className="text-gray-600">Past</span>
@@ -406,6 +388,7 @@ function AppointmentPageInner() {
                 <span className="inline-block w-3 h-3 rounded bg-white border border-gray-300" />
                 <span className="text-gray-600">Available</span>
               </div>
+              <div className="text-gray-500">Bookable until 11:59 PM today</div>
             </div>
           )}
         </div>
@@ -566,12 +549,31 @@ function AppointmentPageInner() {
             >
               Go to Patient Portal
             </Link>
-            <Link
-              href="/appointment"
+            <button
+              type="button"
+              onClick={() => {
+                // Reset booking flow to start a new appointment
+                setFormData({
+                  doctorId: '',
+                  departmentId: '',
+                  date: todayStr,
+                  time: '',
+                  reasonPreset: '',
+                  reasonOther: '',
+                });
+                setSelectedDoctorId('');
+                setBookError(null);
+                setBooking(false);
+                // Reset email field to known email (if any)
+                setEmailOverride(me?.email || '');
+                setCurrentStep('doctor-selection');
+                // Optional UX: scroll back to top of card
+                try { window?.scrollTo?.({ top: 0, behavior: 'smooth' }); } catch {}
+              }}
               className="border-2 border-blue-600 text-blue-600 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
             >
               Book Another Appointment
-            </Link>
+            </button>
           </div>
         </>
       )}
