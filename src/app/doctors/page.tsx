@@ -19,14 +19,12 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   // Static departments (no backend fetch)
   const departments: Department[] = useMemo(() => ([
-    { id: 'cardio', name: 'Cardiology', description: 'Heart and vascular care', icon: 'heart' },
-    { id: 'neuro', name: 'Neurology', description: 'Brain and nervous system', icon: 'brain' },
-    { id: 'pedia', name: 'Pediatrics', description: 'Child healthcare', icon: 'baby' },
-    { id: 'ortho', name: 'Orthopedics', description: 'Bones and joints', icon: 'bone' },
-    { id: 'derma', name: 'Dermatology', description: 'Skin, hair and nails', icon: 'skin' },
-    { id: 'ent', name: 'ENT', description: 'Ear, Nose and Throat', icon: 'ear' },
-    { id: 'gyn', name: 'Gynecology', description: 'Women’s health', icon: 'female' },
-    { id: 'onco', name: 'Oncology', description: 'Cancer treatment', icon: 'ribbon' },
+    { id: '1', name: 'Cardiology', description: 'Heart and cardiovascular system care', icon: 'Heart' },
+    { id: '2', name: 'Neurology', description: 'Brain and nervous system specialists', icon: 'Brain' },
+    { id: '3', name: 'Orthopedics', description: 'Bone, joint, and muscle care', icon: 'Bone' },
+    { id: '4', name: 'Pediatrics', description: 'Child healthcare specialists', icon: 'Baby' },
+    { id: '5', name: 'Dermatology', description: 'Skin, hair, and nail care', icon: 'Skin' },
+    { id: '6', name: 'General Medicine', description: 'General health and wellness care', icon: 'Stethoscope' },
   ]), []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +71,7 @@ export default function DoctorsPage() {
   }, [searchTerm, selectedDepartment, doctors, departments]);
 
   const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
-    const department = departments.find((d: Department) => d.id === doctor.departmentId);
+  const department = departments.find((d: Department) => d.id === doctor.departmentId);
     const synth = (() => {
       // Generate deterministic pseudo-random rating/reviews based on id
       let hash = 0;
@@ -104,7 +102,7 @@ export default function DoctorsPage() {
               {doctor.specialization}
             </p>
             <p className="text-gray-600 mb-3 md:mb-4 text-sm md:text-base">
-              {department?.name}
+              {department?.name || doctor.department || doctor.specialization}
             </p>
             {doctor.qualification && doctor.qualification.length > 0 && (
               <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 md:gap-2 mb-3 md:mb-4">

@@ -151,6 +151,30 @@ export const doctorAPI = {
       return [from, to];
     };
 
+    // Map specialization keywords to our mock department IDs (from mock-data.ts)
+    const deptIdFor = (spec?: string): string | undefined => {
+      const s = (spec || '').toLowerCase();
+      if (!s) return undefined;
+      if (/(cardio)/.test(s)) return '1'; // Cardiology
+      if (/(neuro)/.test(s)) return '2'; // Neurology
+      if (/(ortho)/.test(s)) return '3'; // Orthopedics
+      if (/(pedi|child)/.test(s)) return '4'; // Pediatrics
+      if (/(derma|skin)/.test(s)) return '5'; // Dermatology
+      if (/(general)/.test(s)) return '6'; // General Medicine
+      return undefined;
+    };
+    const deptNameFor = (spec?: string): string | undefined => {
+      const s = (spec || '').toLowerCase();
+      if (!s) return undefined;
+      if (/(cardio)/.test(s)) return 'Cardiology';
+      if (/(neuro)/.test(s)) return 'Neurology';
+      if (/(ortho)/.test(s)) return 'Orthopedics';
+      if (/(pedi|child)/.test(s)) return 'Pediatrics';
+      if (/(derma|skin)/.test(s)) return 'Dermatology';
+      if (/(general)/.test(s)) return 'General Medicine';
+      return undefined;
+    };
+
     const doctors: Doctor[] = (response.data || []).map((d) => {
       const name = [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
       const qualification = d.qualification
@@ -162,6 +186,8 @@ export const doctorAPI = {
         email: d.email,
         phone: d.phoneNumber,
         specialization: d.specialization,
+  departmentId: deptIdFor(d.specialization),
+  department: deptNameFor(d.specialization),
         experience: d.experienceYears ?? 0,
         qualification,
         rating: typeof d.rating === 'number' ? d.rating : 0,

@@ -41,7 +41,12 @@ export default function DepartmentsPage() {
     const isAvailable = (doc: Doctor) => (Array.isArray(doc.availableSlots) && doc.availableSlots.length > 0) || doc.isAvailable === true;
     for (const doc of doctors) {
       if (!isAvailable(doc)) continue;
-      const id = doc.departmentId ?? '';
+      let id = doc.departmentId ?? '';
+      if (!id) {
+        const spec = (doc.specialization || '').toLowerCase();
+        const match = departments.find(d => spec && (spec.includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(spec)));
+        if (match) id = match.id;
+      }
       if (!id) continue;
       if (!map.has(id)) map.set(id, 0);
       map.set(id, (map.get(id) || 0) + 1);

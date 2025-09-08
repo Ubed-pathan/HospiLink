@@ -13,6 +13,7 @@ export default function AdminHome() {
   const [loadingAppts, setLoadingAppts] = React.useState(false);
   const [apptsError, setApptsError] = React.useState<string | null>(null);
   const [doctorCount, setDoctorCount] = React.useState<number | null>(null);
+  const [availableDoctorCount, setAvailableDoctorCount] = React.useState<number | null>(null);
   const [userCount, setUserCount] = React.useState<number | null>(null);
   const [loadingCounts, setLoadingCounts] = React.useState(false);
   const [countsError, setCountsError] = React.useState<string | null>(null);
@@ -48,12 +49,15 @@ export default function AdminHome() {
       setLoadingCounts(true);
       setCountsError(null);
       try {
-        const [doctors, users] = await Promise.all([
+  const [doctors, users] = await Promise.all([
           doctorAPI.getAllDoctors().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Doctors fetch failed'); }),
           adminUserAPI.list().catch((e: unknown) => { throw new Error((e as Error)?.message || 'Users fetch failed'); }),
         ]);
         if (!active) return;
-        setDoctorCount(Array.isArray(doctors) ? doctors.length : 0);
+  const docsArr = Array.isArray(doctors) ? doctors : [];
+  setDoctorCount(docsArr.length);
+  const available = docsArr.filter((d) => d.isAvailable === true || (Array.isArray(d.availableSlots) && d.availableSlots.length > 0)).length;
+  setAvailableDoctorCount(available);
         setUserCount(Array.isArray(users) ? users.length : 0);
       } catch (e: unknown) {
         if (!active) return;
@@ -108,6 +112,7 @@ export default function AdminHome() {
     { label: 'Total Appointments', value: apptCounts?.total ?? (loadingAppts ? '...' : 0), trend: [89,95,108,112,98,105,118,124,116,132,128,135] },
     { label: 'This Month', value: apptCounts?.month ?? (loadingAppts ? '...' : 0), trend: [12,18,22,28,19,24] },
     { label: 'Today', value: apptCounts?.today ?? (loadingAppts ? '...' : 0), trend: [3,5,4,6] },
+    { label: 'Available Doctors', value: availableDoctorCount ?? '—', trend: [40,42,44,43,45,47] },
     { label: 'Total Doctors', value: doctorCount ?? '—', trend: [60,62,65,68,70,72,75,78,80,83,85,86] },
     { label: 'Registered Users', value: userCount ?? '—', trend: [4100,4300,4450,4600,4700,4800,4900,5000,5050,5100,5150,5230] },
     { label: 'Avg Rating', value: '4.7', trend: [4.3,4.4,4.5,4.6,4.6,4.7] },
@@ -129,7 +134,7 @@ export default function AdminHome() {
         {kpis.map((k) => (
           <div key={k.label} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="text-sm text-gray-500">{k.label}</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{loadingCounts && (k.label === 'Total Doctors' || k.label === 'Registered Users') ? '...' : k.value}</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">{loadingCounts && (k.label === 'Total Doctors' || k.label === 'Registered Users' || k.label === 'Available Doctors') ? '...' : k.value}</div>
             <div className="mt-3">
               {typeof k.trend[0] === 'number' && k.trend.length > 8 ? (
                 <MiniBarChart values={k.trend as number[]} height={48} />
