@@ -183,6 +183,29 @@ export const doctorAPI = {
     return response.data;
   },
 
+  // Get doctor by username (self profile fetch)
+  getByUsername: async (username: string) => {
+    const response = await api.get(`/doctor/getDoctorByUsername/${encodeURIComponent(username)}`);
+    return response.data as {
+      id: string;
+      firstName?: string; middleName?: string; lastName?: string; username?: string;
+      email?: string; phoneNumber?: string; specialization?: string;
+      availableTimeFrom?: string; availableTimeTo?: string; isPresent?: boolean;
+    };
+  },
+
+  // Doctor updates own presence flag
+  updatePresence: async (isPresent: boolean) => {
+    const response = await api.patch(`/doctor/updatePresence`, { isPresent });
+    return response.data;
+  },
+
+  // Doctor updates own availability window (HH:mm strings)
+  updateAvailability: async (availableTimeFrom: string, availableTimeTo: string) => {
+    const response = await api.patch(`/doctor/updateAvailability`, { availableTimeFrom, availableTimeTo });
+    return response.data;
+  },
+
   // Search doctors
   searchDoctors: async (filters: {
     specialty?: string;
