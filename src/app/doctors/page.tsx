@@ -11,37 +11,27 @@ import { Search, Star, Clock, Calendar } from 'lucide-react';
 import NavHeader from '@/components/layout/NavHeader';
 import Footer from '@/components/layout/Footer';
 import { Doctor, Department } from '@/lib/types';
-import { doctorAPI, departmentAPI } from '@/lib/api-services';
+import { doctorAPI } from '@/lib/api-services';
 
 export default function DoctorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  // Static departments (no backend fetch)
+  const departments: Department[] = useMemo(() => ([
+    { id: 'cardio', name: 'Cardiology', description: 'Heart and vascular care', icon: 'heart' },
+    { id: 'neuro', name: 'Neurology', description: 'Brain and nervous system', icon: 'brain' },
+    { id: 'pedia', name: 'Pediatrics', description: 'Child healthcare', icon: 'baby' },
+    { id: 'ortho', name: 'Orthopedics', description: 'Bones and joints', icon: 'bone' },
+    { id: 'derma', name: 'Dermatology', description: 'Skin, hair and nails', icon: 'skin' },
+    { id: 'ent', name: 'ENT', description: 'Ear, Nose and Throat', icon: 'ear' },
+    { id: 'gyn', name: 'Gynecology', description: 'Women’s health', icon: 'female' },
+    { id: 'onco', name: 'Oncology', description: 'Cancer treatment', icon: 'ribbon' },
+  ]), []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadingDepartments, setLoadingDepartments] = useState(true);
-  const [departmentsError, setDepartmentsError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoadingDepartments(true);
-      setDepartmentsError(null);
-      try {
-        const deps = await departmentAPI.getAllDepartments();
-        if (!active) return;
-        setDepartments(Array.isArray(deps) ? deps : []);
-      } catch (e: unknown) {
-        if (!active) return;
-        const msg = e instanceof Error ? e.message : 'Failed to load departments';
-        setDepartmentsError(msg);
-      } finally {
-        if (active) setLoadingDepartments(false);
-      }
-    })();
-    return () => { active = false; };
-  }, []);
+  // Departments are static; no fetch effect needed
 
   useEffect(() => {
     let active = true;
@@ -230,16 +220,9 @@ export default function DoctorsPage() {
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
-                    disabled={loadingDepartments}
-                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base disabled:bg-gray-100 disabled:text-gray-500"
+                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   >
                     <option value="">All Departments</option>
-                    {loadingDepartments ? (
-                      <option value="" disabled>Loading departments...</option>
-                    ) : null}
-                    {departmentsError ? (
-                      <option value="" disabled>{departmentsError}</option>
-                    ) : null}
                     {departments.map((dept: Department) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
