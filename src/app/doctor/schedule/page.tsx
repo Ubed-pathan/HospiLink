@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2, XCircle, UserCheck, Clock, AlertTriangle } from 
 
 export default function DoctorSchedulePage() {
   const [doctorUsername, setDoctorUsername] = React.useState<string | null>(null);
+  const [doctorId, setDoctorId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState<'idle'|'saving'|'saved'|'error'>('idle');
   const [error, setError] = React.useState<string | null>(null);
@@ -15,14 +16,16 @@ export default function DoctorSchedulePage() {
   const [from, setFrom] = React.useState<string>('09:00');
   const [to, setTo] = React.useState<string>('17:00');
 
-  // Load doctor username from global auth
+  // Load doctor id/username from global auth (loadOnRefresh)
   React.useEffect(() => {
-    const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { username?: string } } };
-    const candidate = w.__HOSPILINK_AUTH__?.user?.username;
-    if (candidate) setDoctorUsername(String(candidate));
+    const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; username?: string; roles?: string[] } } };
+    const u = w.__HOSPILINK_AUTH__?.user;
+    if (u?.username) setDoctorUsername(String(u.username));
+    if (u?.id) setDoctorId(String(u.id));
     const onReady = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { user?: { username?: string } } | undefined;
+      const detail = (e as CustomEvent).detail as { user?: { id?: string; username?: string; roles?: string[] } } | undefined;
       if (detail?.user?.username) setDoctorUsername(String(detail.user.username));
+      if (detail?.user?.id) setDoctorId(String(detail.user.id));
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     return () => window.removeEventListener('hospilink-auth-ready', onReady);
@@ -33,6 +36,7 @@ export default function DoctorSchedulePage() {
     setError(null);
     try {
       const d = await doctorAPI.getByUsername(uname);
+      setDoctorId(d.id);
       setIsPresent(Boolean(d.isPresent));
       setFrom(d.availableTimeFrom || '09:00');
       setTo(d.availableTimeTo || '17:00');
@@ -50,7 +54,10 @@ export default function DoctorSchedulePage() {
   }, [doctorUsername, loadProfile]);
 
   const handleSave = async () => {
-    if (!doctorUsername) return;
+    if (!doctorId) {
+      setError('Doctor ID missing. Please refresh the page.');
+      return;
+    }
     if (!from || !to || from >= to) {
       setError('Please set a valid availability time range.');
       return;
@@ -58,8 +65,7 @@ export default function DoctorSchedulePage() {
     setSaving('saving');
     setError(null);
     try {
-      await doctorAPI.updatePresence(isPresent);
-      await doctorAPI.updateAvailability(from, to);
+      await doctorAPI.updateDoctorAvailability({ doctorId, availableTimeFrom: from, availableTimeTo: to, isPresent });
       setSaving('saved');
       setTimeout(() => setSaving('idle'), 1200);
     } catch (e) {

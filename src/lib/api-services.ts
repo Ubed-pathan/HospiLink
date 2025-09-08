@@ -232,6 +232,17 @@ export const doctorAPI = {
     return response.data;
   },
 
+  // Unified doctor availability update per backend PUT /doctor/updateDoctorAvailability
+  updateDoctorAvailability: async (payload: {
+    doctorId: string;
+    availableTimeFrom: string; // HH:mm
+    availableTimeTo: string;   // HH:mm
+    isPresent: boolean;
+  }) => {
+    const response = await api.put(`/doctor/updateDoctorAvailability`, payload);
+    return response.data;
+  },
+
   // Search doctors
   searchDoctors: async (filters: {
     specialty?: string;
