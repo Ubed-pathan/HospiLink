@@ -440,6 +440,7 @@ export const appointmentAPI = {
   },
 };
 
+
 // Dashboard APIs (Admin only)
 export const dashboardAPI = {
   // Get dashboard statistics
