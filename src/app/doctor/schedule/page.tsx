@@ -101,7 +101,7 @@ export default function DoctorSchedulePage() {
           <button
             type="button"
             onClick={() => setIsPresent((v) => !v)}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${isPresent ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${isPresent ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}
             aria-pressed={isPresent}
           >
             {isPresent ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -118,12 +118,12 @@ export default function DoctorSchedulePage() {
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="relative">
               <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="time" value={from} onChange={(e)=> setFrom(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <input type="time" value={from} onChange={(e)=> setFrom(e.target.value)} className="w-full pl-9 pr-3 py-3 border-2 border-gray-300 rounded-lg text-base bg-white text-black focus-visible:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
             <span className="text-gray-500 text-sm text-center">to</span>
             <div className="relative">
               <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="time" value={to} onChange={(e)=> setTo(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <input type="time" value={to} onChange={(e)=> setTo(e.target.value)} className="w-full pl-9 pr-3 py-3 border-2 border-gray-300 rounded-lg text-base bg-white text-black focus-visible:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -138,7 +138,7 @@ export default function DoctorSchedulePage() {
 
         {/* Actions */}
         <div className="mt-6">
-          <Button onClick={handleSave} disabled={saving==='saving' || loading || (!!from && !!to && from >= to)} className="inline-flex items-center gap-2">
+          <Button onClick={handleSave} disabled={saving==='saving' || loading || (!!from && !!to && from >= to)} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
             {saving==='saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save changes
           </Button>

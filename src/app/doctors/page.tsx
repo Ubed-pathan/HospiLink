@@ -16,7 +16,6 @@ import { doctorAPI, departmentAPI } from '@/lib/api-services';
 export default function DoctorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +65,7 @@ export default function DoctorsPage() {
     };
   }, []);
 
-  const locations = ['All Locations', 'Downtown Medical Center', 'North Campus', 'West Wing', 'East Clinic'];
+  
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doctor: Doctor) => {
@@ -79,11 +78,9 @@ export default function DoctorsPage() {
           const spec = (doctor.specialization || doctor.specialty || '').toLowerCase();
           return spec.includes(dept.name.toLowerCase());
         })();
-      const matchesLocation = !selectedLocation || selectedLocation === 'All Locations' ||
-        doctor.location === selectedLocation;
-      return matchesSearch && matchesDepartment && matchesLocation;
+      return matchesSearch && matchesDepartment;
     });
-  }, [searchTerm, selectedDepartment, selectedLocation, doctors, departments]);
+  }, [searchTerm, selectedDepartment, doctors, departments]);
 
   const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
     const department = departments.find((d: Department) => d.id === doctor.departmentId);
@@ -229,7 +226,7 @@ export default function DoctorsPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 md:gap-4">
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -250,17 +247,7 @@ export default function DoctorsPage() {
                     ))}
                   </select>
                   
-                  <select
-                    value={selectedLocation}
-                    onChange={(e) => setSelectedLocation(e.target.value)}
-                    className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
-                  >
-                    {locations.map((location) => (
-                      <option key={location} value={location}>
-                        {location}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Location dropdown removed */}
                   
                   <button className="px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm md:text-base font-medium">
                     Search
