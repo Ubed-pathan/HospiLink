@@ -3,7 +3,7 @@
 import React from 'react';
 import Button from '@/components/ui/Button';
 import { doctorAPI } from '@/lib/api-services';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, UserCheck, Clock, AlertTriangle } from 'lucide-react';
 
 export default function DoctorSchedulePage() {
   const [doctorUsername, setDoctorUsername] = React.useState<string | null>(null);
@@ -63,7 +63,8 @@ export default function DoctorSchedulePage() {
       setSaving('saved');
       setTimeout(() => setSaving('idle'), 1200);
     } catch (e) {
-      const msg = (e as { message?: string })?.message || 'Failed to save changes';
+      const raw = (e as { message?: string })?.message || 'Failed to save changes';
+      const msg = /404/.test(raw) ? 'Save endpoint not found (404). Please configure your backend routes.' : raw;
       setSaving('error');
       setError(msg);
       setTimeout(() => setSaving('idle'), 1500);
@@ -71,19 +72,31 @@ export default function DoctorSchedulePage() {
   };
 
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-gray-900">Schedule</h2>
-      <p className="text-sm text-gray-600 mb-4">Update your presence and availability window.</p>
+    <div className="max-w-3xl">
+      <div className="mb-6">
+        <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm">
+          <UserCheck className="w-4 h-4" /> Doctor Schedule
+        </div>
+        <h2 className="mt-2 text-3xl font-bold text-gray-900">Availability & Presence</h2>
+        <p className="text-gray-600 mt-1">Control your visible status and working hours shown to patients.</p>
+      </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{error}</div>
+        <div className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <AlertTriangle className="w-4 h-4 mt-0.5" />
+          <span>{error}</span>
+        </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        {/* Presence */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="text-sm text-gray-600">Status</div>
-            <div className="text-gray-900 font-semibold">{isPresent ? 'Present' : 'Absent'}</div>
+            <div className="text-sm text-gray-600">Current status</div>
+            <div className="mt-0.5 inline-flex items-center gap-2">
+              <span className={`inline-block w-2.5 h-2.5 rounded-full ${isPresent ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+              <span className="font-semibold text-gray-900">{isPresent ? 'Present' : 'Absent'}</span>
+            </div>
           </div>
           <button
             type="button"
@@ -91,42 +104,53 @@ export default function DoctorSchedulePage() {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${isPresent ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
             aria-pressed={isPresent}
           >
-            {isPresent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {isPresent ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
             {isPresent ? 'Mark Absent' : 'Mark Present'}
           </button>
         </div>
 
+        {/* Divider */}
+        <div className="my-6 h-px bg-gray-100" />
+
+        {/* Availability */}
         <div>
-          <div className="text-sm text-gray-600 mb-2">Availability</div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700">From</label>
-              <input type="time" value={from} onChange={(e)=> setFrom(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" />
+          <div className="text-sm text-gray-600 mb-2">Availability window</div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="relative">
+              <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="time" value={from} onChange={(e)=> setFrom(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
-            <span className="text-gray-500">to</span>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700">To</label>
-              <input type="time" value={to} onChange={(e)=> setTo(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" />
+            <span className="text-gray-500 text-sm text-center">to</span>
+            <div className="relative">
+              <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="time" value={to} onChange={(e)=> setTo(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
-          <div className="mt-1 text-xs text-gray-500">Times use 24-hour format (HH:mm).</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+            <span>Format: 24‑hour (HH:mm)</span>
+            {from && to && from >= to && (
+              <span className="inline-flex items-center gap-1 text-red-600"><AlertTriangle className="w-3 h-3" /> Invalid time range</span>
+            )}
+          </div>
+
+          {/* Quick presets removed as requested */}
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button onClick={handleSave} disabled={saving==='saving' || loading} className="inline-flex items-center gap-2">
+        {/* Actions */}
+        <div className="mt-6">
+          <Button onClick={handleSave} disabled={saving==='saving' || loading || (!!from && !!to && from >= to)} className="inline-flex items-center gap-2">
             {saving==='saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save changes
           </Button>
-          <Button variant="ghost" onClick={() => doctorUsername && loadProfile(doctorUsername)} disabled={loading} className="text-gray-700">
-            Refresh
-          </Button>
-          {saving==='saved' && <span className="inline-flex items-center gap-1 text-green-600 text-sm"><CheckCircle2 className="w-4 h-4" />Saved</span>}
-          {saving==='error' && <span className="inline-flex items-center gap-1 text-red-600 text-sm"><XCircle className="w-4 h-4" />Failed</span>}
         </div>
       </div>
 
+      {/* Loading skeleton */}
       {loading && (
-        <div className="mt-3 text-sm text-gray-500 inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>
+        <div className="mt-4 space-y-2">
+          <div className="h-10 w-40 bg-gray-100 rounded animate-pulse" />
+          <div className="h-24 w-full bg-gray-100 rounded animate-pulse" />
+        </div>
       )}
     </div>
   );
