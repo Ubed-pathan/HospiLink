@@ -233,8 +233,9 @@ export const doctorAPI = {
   },
 
   // Unified doctor availability update per backend PUT /doctor/updateDoctorAvailability
+  // Backend expects DoctorUsername (note the capital D) per provided DTO
   updateDoctorAvailability: async (payload: {
-    doctorId: string;
+    DoctorUsername: string;
     availableTimeFrom: string; // HH:mm
     availableTimeTo: string;   // HH:mm
     isPresent: boolean;
