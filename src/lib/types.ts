@@ -314,3 +314,15 @@ export interface DoctorAppointmentDto {
   // ISO local datetime string (from LocalDateTime backend)
   appointmentTime: string;
 }
+
+// Backend Patients Of Doctor DTO for /appointment/getAllPatientsOfDoctor/{doctorUsername}
+export interface PatientsOfDoctorDto {
+  appointmentId: string;
+  // ISO local datetime string (LocalDateTime on backend); keep as string
+  appointmentTime: string;
+  appointmentStatus: string;
+  userId: string;
+  usersFullName: string;
+  usersEmail: string;
+  reason?: string;
+}

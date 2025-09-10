@@ -4,7 +4,7 @@
  */
 
 import api from './api';
-import { User, Doctor, Department, Appointment, AppointmentDtoForAdminDashboard, UsersAppointmentsDto, DoctorAppointmentDto } from './types';
+import { User, Doctor, Department, Appointment, AppointmentDtoForAdminDashboard, UsersAppointmentsDto, DoctorAppointmentDto, PatientsOfDoctorDto } from './types';
 import type { DoctorRegisterFormData, AdminUserFormData } from './validations';
 
 // Authentication APIs
@@ -463,6 +463,30 @@ export const appointmentAPI = {
       userEmail: String(a.userEmail || ''),
       reason: a.reason ? String(a.reason) : undefined,
       appointmentTime: String(a.appointmentTime),
+    }));
+  },
+
+  // Get all patients of a doctor by username using PatientsOfDoctorDto
+  getAllPatientsOfDoctor: async (doctorUsername: string): Promise<PatientsOfDoctorDto[]> => {
+    type BackendPatientsOfDoctor = {
+      appointmentId: string | number;
+      appointmentTime: string; // ISO string from LocalDateTime
+      appointmentStatus?: string;
+      userId?: string | number;
+      usersFullName?: string;
+      usersEmail?: string;
+      reason?: string | null;
+    };
+    const response = await api.get<BackendPatientsOfDoctor[]>(`/appointment/getAllPatientsOfDoctor/${doctorUsername}`);
+    const arr: BackendPatientsOfDoctor[] = Array.isArray(response.data) ? response.data : [];
+    return arr.map((p) => ({
+      appointmentId: String(p.appointmentId),
+      appointmentTime: String(p.appointmentTime),
+      appointmentStatus: String(p.appointmentStatus || ''),
+      userId: String(p.userId || ''),
+      usersFullName: String(p.usersFullName || ''),
+      usersEmail: String(p.usersEmail || ''),
+      reason: p.reason ? String(p.reason) : undefined,
     }));
   },
 
