@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { userAPI, doctorAPI } from '@/lib/api-services';
-import type { User } from '@/lib/types';
 
 type AuthUser = {
   firstName?: string;
@@ -24,10 +22,6 @@ type AuthUser = {
 
 export default function DoctorSettingsPage() {
   const [me, setMe] = React.useState<AuthUser | null>(null);
-  const [editMode, setEditMode] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [form, setForm] = React.useState<{ phone: string; address: string }>({ phone: '', address: '' });
-  const [docProfile, setDocProfile] = React.useState<{ specialization?: string; availableTimeFrom?: string; availableTimeTo?: string; isPresent?: boolean; doctorAddress?: string } | null>(null);
 
   React.useEffect(() => {
     // Preload from global auth snapshot if present
@@ -43,11 +37,6 @@ export default function DoctorSettingsPage() {
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     return () => window.removeEventListener('hospilink-auth-ready', onReady);
   }, []);
-
-  React.useEffect(() => {
-    // seed editable fields from auth snapshot
-    setForm({ phone: me?.phoneNumber || '', address: me?.address || '' });
-  }, [me?.phoneNumber, me?.address]);
 
   const fullName = React.useMemo(() => {
     if (!me) return '';
@@ -71,42 +60,6 @@ export default function DoctorSettingsPage() {
     const map: Record<string, string> = { user: 'patient', doctor: 'doctor', admin: 'admin' };
     return me.roles.map(r => map[String(r).toLowerCase()] || String(r)).join(', ');
   }, [me?.roles]);
-
-  // Load doctor profile for bottom card
-  React.useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (!me?.username) return;
-      try {
-        const d = await doctorAPI.getByUsername(me.username);
-        const doc = d as unknown as { specialization?: string; availableTimeFrom?: string; availableTimeTo?: string; isPresent?: boolean; doctorAddress?: string };
-        if (!cancelled) setDocProfile({
-          specialization: doc.specialization,
-          availableTimeFrom: doc.availableTimeFrom,
-          availableTimeTo: doc.availableTimeTo,
-          isPresent: doc.isPresent,
-          doctorAddress: doc.doctorAddress,
-        });
-      } catch {
-        if (!cancelled) setDocProfile(null);
-      }
-    };
-    run();
-    return () => { cancelled = true; };
-  }, [me?.username]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const updated: User = await userAPI.updateProfile({ phone: form.phone, address: form.address });
-      setMe((prev) => ({ ...(prev || {}), phoneNumber: updated.phone || form.phone, address: updated.address || form.address }));
-      setEditMode(false);
-    } catch {
-      // keep lightweight: no toast
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -142,11 +95,11 @@ export default function DoctorSettingsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900">Phone</label>
-            <input type="tel" className={`mt-1 block w-full border rounded-md px-3 py-2 text-sm text-black ${editMode ? 'border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600' : 'border-gray-300'}`} value={editMode ? form.phone : (me?.phoneNumber || '')} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} readOnly={!editMode} />
+            <input type="tel" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.phoneNumber || ''} readOnly />
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-900">Address</label>
-            <input type="text" className={`mt-1 block w-full border rounded-md px-3 py-2 text-sm text-black ${editMode ? 'border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600' : 'border-gray-300'}`} value={editMode ? form.address : (me?.address || '')} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} readOnly={!editMode} />
+            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.address || ''} readOnly />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900">City</label>
@@ -172,44 +125,7 @@ export default function DoctorSettingsPage() {
             <label className="block text-sm font-medium text-gray-900">Gender</label>
             <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={(me?.gender ?? '') as string} readOnly />
           </div>
-          <div className="md:col-span-2 flex items-center gap-2 justify-end mt-2">
-            {!editMode ? (
-              <button onClick={() => setEditMode(true)} className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">Edit</button>
-            ) : (
-              <>
-                <button onClick={() => { setEditMode(false); setForm({ phone: me?.phoneNumber || '', address: me?.address || '' }); }} className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-black/85 disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
-              </>
-            )}
-          </div>
         </div>
-      </section>
-
-      {/* Doctor Profile (read-only) */}
-      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Doctor Profile</h3>
-        {!docProfile ? (
-          <p className="text-sm text-gray-600">Doctor details not available.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-gray-500">Specialization</div>
-              <div className="text-sm text-gray-900">{docProfile.specialization || '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Clinic / Location</div>
-              <div className="text-sm text-gray-900">{docProfile.doctorAddress || me?.address || '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Availability</div>
-              <div className="text-sm text-gray-900">{docProfile.availableTimeFrom && docProfile.availableTimeTo ? `${docProfile.availableTimeFrom} - ${docProfile.availableTimeTo}` : '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Status</div>
-              <div className="text-sm">{docProfile.isPresent ? <span className="px-2 py-0.5 rounded-full text-xs border bg-green-50 text-green-700 border-green-200">Present</span> : <span className="px-2 py-0.5 rounded-full text-xs border bg-red-50 text-red-700 border-red-200">Absent</span>}</div>
-            </div>
-          </div>
-        )}
       </section>
     </div>
   );
