@@ -14,6 +14,7 @@ export default function DoctorSchedulePage() {
   const [isPresent, setIsPresent] = React.useState<boolean>(true);
   const [from, setFrom] = React.useState<string>('09:00');
   const [to, setTo] = React.useState<string>('17:00');
+  
 
   // Load doctor id/username from global auth (loadOnRefresh)
   React.useEffect(() => {
