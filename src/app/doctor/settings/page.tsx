@@ -221,18 +221,30 @@ export default function DoctorSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-
-      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">{initials}</div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
-              <p className="text-sm text-gray-500">Manage your account details</p>
+      {/* Hero header */}
+      <section className="relative overflow-hidden rounded-xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0E1F2F] via-[#24425D] to-[#8747D0] opacity-95" />
+        <div className="relative p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white/10 text-white flex items-center justify-center text-xl md:text-2xl font-bold ring-1 ring-white/20 backdrop-blur">
+              {initials}
+            </div>
+            <div className="text-white">
+              <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{fullName || 'Doctor'}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs md:text-sm text-white/80">
+                <span>@{displayUsername || 'username'}</span>
+                {rolesText && (
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/10 ring-1 ring-white/20 text-white/90">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-80"><path d="M12 2l3 7h7l-5.5 4 2.5 7-7-4.5L5.5 20 8 13 2 9h7l3-7z" fill="currentColor"/></svg>
+                    {rolesText}
+                  </span>
+                )}
+                {me?.email && <span className="opacity-90">{me.email}</span>}
+                {me?.phoneNumber && <span className="opacity-90">• {me.phoneNumber}</span>}
+              </div>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 if (me) {
@@ -254,86 +266,66 @@ export default function DoctorSettingsPage() {
                 }
                 setEditOpen(true);
               }}
-              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium"
-            >Edit</button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Full name</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={fullName || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Email</label>
-            <input type="email" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.email || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Username</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-gray-50 cursor-not-allowed" value={displayUsername} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Roles</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={rolesText} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Phone</label>
-            <input type="tel" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.phoneNumber || ''} readOnly />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-900">Address</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.address || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">City</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.city || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">State</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.state || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Country</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.country || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">ZIP code</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={me?.zipCode || ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Age</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={(me?.age ?? '') !== '' ? String(me?.age) : ''} readOnly />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900">Gender</label>
-            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black" value={(me?.gender ?? '') as string} readOnly />
+              className="px-4 py-2 rounded-md bg-white text-[#0E1F2F] text-sm font-medium hover:bg-white/90 shadow-sm"
+            >Edit Profile</button>
           </div>
         </div>
       </section>
 
+      {/* Account details */}
+      <section className="bg-white/80 backdrop-blur border border-gray-200/60 shadow-sm rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          <KV label="Full name" value={fullName || '-'} />
+          <KV label="Email" value={me?.email || '-'} />
+          <KV label="Username" value={displayUsername || '-'} />
+          <KV label="Roles" value={rolesText || '-'} />
+          <KV label="Phone" value={me?.phoneNumber || '-'} />
+          <KV label="Gender" value={(me?.gender ?? '-') as string} />
+          <KV label="Age" value={(me?.age ?? '-') as unknown as string} />
+          <div className="sm:col-span-2">
+            <KV label="Address" value={me?.address || '-'} />
+          </div>
+          <KV label="City" value={me?.city || '-'} />
+          <KV label="State" value={me?.state || '-'} />
+          <KV label="Country" value={me?.country || '-'} />
+          <KV label="ZIP code" value={me?.zipCode || '-'} />
+        </dl>
+      </section>
+
       {/* Doctor Profile Card (restored) */}
-      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Doctor Profile</h3>
-    {!doctor ? (
+      <section className="bg-white/80 backdrop-blur border border-gray-200/60 shadow-sm rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Doctor Profile</h3>
+        {!doctor ? (
           <p className="text-sm text-gray-600">Doctor details not available.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Info label="Specialization" value={doctor.specialization || '-'} />
-      <Info label="Experience" value={typeof doctor.experience === 'number' ? `${doctor.experience} years` : '-'} />
-      <Info label="Qualification" value={Array.isArray(doctor.qualification) ? (doctor.qualification.join(', ') || '-') : '-'} />
-      <Info label="Clinic / Address" value={me?.address || doctor.location || '-'} />
-      <Info label="City" value={me?.city || '-'} />
-      <Info label="State" value={me?.state || '-'} />
-      <Info label="Country" value={me?.country || '-'} />
-      <Info label="ZIP Code" value={me?.zipCode || '-'} />
-      <Info label="Availability" value={doctor.availableSlots && doctor.availableSlots.length >= 2 ? `${doctor.availableSlots[0]} - ${doctor.availableSlots[1]}` : '—'} />
+            <Info label="Specialization" value={doctor.specialization || '-'} />
+            <Info label="Experience" value={typeof doctor.experience === 'number' ? `${doctor.experience} years` : '-'} />
+            <Info label="Qualification" value={Array.isArray(doctor.qualification) ? (doctor.qualification.join(', ') || '-') : '-'} />
+            <Info label="Clinic / Address" value={me?.address || doctor.location || '-'} />
+            <Info label="City" value={me?.city || '-'} />
+            <Info label="State" value={me?.state || '-'} />
+            <Info label="Country" value={me?.country || '-'} />
+            <Info label="ZIP Code" value={me?.zipCode || '-'} />
+            <Info label="Availability" value={doctor.availableSlots && doctor.availableSlots.length >= 2 ? `${doctor.availableSlots[0]} - ${doctor.availableSlots[1]}` : '—'} />
             <div>
               <div className="text-xs text-gray-500">Status</div>
-              <div className="mt-0.5 text-sm">{doctor.isAvailable ? <span className="px-2 py-0.5 rounded-full text-xs border bg-green-50 text-green-700 border-green-200">Present</span> : <span className="px-2 py-0.5 rounded-full text-xs border bg-red-50 text-red-700 border-red-200">Absent</span>}</div>
+              <div className="mt-0.5 text-sm">
+                {doctor.isAvailable ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border bg-green-50 text-green-700 border-green-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" /> Present
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border bg-red-50 text-red-700 border-red-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600" /> Absent
+                  </span>
+                )}
+              </div>
             </div>
-      <Info label="Rating" value={typeof doctor.rating === 'number' ? `${doctor.rating.toFixed(1)} / 5` : '-'} />
-      <Info label="Reviews" value={typeof doctor.reviewCount === 'number' ? doctor.reviewCount : '-'} />
-      <Info label="Joined" value={doctor.createdAt ? new Date(doctor.createdAt).toLocaleString() : '-'} />
+            <Info label="Rating" value={typeof doctor.rating === 'number' ? `${doctor.rating.toFixed(1)} / 5` : '-'} />
+            <Info label="Reviews" value={typeof doctor.reviewCount === 'number' ? doctor.reviewCount : '-'} />
+            <Info label="Joined" value={doctor.createdAt ? new Date(doctor.createdAt).toLocaleString() : '-'} />
           </div>
         )}
       </section>
@@ -544,6 +536,15 @@ export default function DoctorSettingsPage() {
           </ModalFooter>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function KV({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div className="flex flex-col">
+      <dt className="text-xs font-medium text-gray-500">{label}</dt>
+      <dd className="mt-1 text-sm text-gray-900 break-words">{(value ?? '') !== '' ? value : '-'}</dd>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
+import DonutChart from '@/components/charts/DonutChart';
 import { adminAppointmentAPI, doctorAPI, reviewAPI } from '@/lib/api-services';
 
 type AdminAppt = import('@/lib/types').AppointmentDtoForAdminDashboard;
@@ -71,7 +72,7 @@ export default function DoctorHome() {
         const myEmail = me?.email;
 
         // Fetch all dashboard appointments then filter by current doctor
-        const raw = await adminAppointmentAPI.getAllForDashboard();
+  const raw = await adminAppointmentAPI.getAllForDashboard();
         const mine = raw.filter((a) => {
           const did = (a.doctorId || '') as string;
           const demail = (a as AdminAppt & { doctorsEmail?: string }).doctorsEmail;
@@ -85,7 +86,30 @@ export default function DoctorHome() {
           const db = parseApptDate(b)?.getTime() ?? 0;
           return da - db;
         });
-        if (!cancelled) setAppts(mine);
+        if (!cancelled) {
+          if (mine.length === 0) {
+            // Demo fallback data to showcase dashboard visuals
+            const today = new Date();
+            const mk = (h: number, status: string, reason: string) => ({
+              id: `demo-${h}-${status}`,
+              doctorId: myId || 'demo-doc',
+              appointmentTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, 0, 0).toISOString(),
+              status,
+              usersFullName: ['Rohan', 'Aisha', 'Karan', 'Neha', 'Zoya'][Math.floor(Math.random()*5)],
+              reason,
+              doctorsEmail: myEmail || 'doctor@example.com',
+            }) as unknown as AdminAppt;
+            setAppts([
+              mk(9, 'scheduled', 'Consultation'),
+              mk(11, 'confirmed', 'Follow-up'),
+              mk(14, 'completed', 'Reports Review'),
+              mk(16, 'cancelled', '—'),
+              mk(18, 'scheduled', 'Consultation'),
+            ]);
+          } else {
+            setAppts(mine);
+          }
+        }
 
         // Find my doctor profile for rating (match by email or id)
         try {
@@ -165,6 +189,23 @@ export default function DoctorHome() {
     .filter((x) => (x.dt as Date) >= new Date())
     .slice(0, 8);
 
+  // Status distribution for donut
+  const statusCounts = appts.reduce(
+    (acc, a) => {
+      const s = getStatus(a);
+      if (s === 'cancelled' || s === 'no-show') acc.cancelled += 1;
+      else if (s === 'completed' || s === 'confirmed') acc.completed += 1;
+      else acc.scheduled += 1;
+      return acc;
+    },
+    { scheduled: 0, completed: 0, cancelled: 0 }
+  );
+  const donutData = [
+    { label: 'Scheduled', value: statusCounts.scheduled, color: '#3B82F6' },
+    { label: 'Completed', value: statusCounts.completed, color: '#10B981' },
+    { label: 'Cancelled', value: statusCounts.cancelled, color: '#EF4444' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Current Doctor Summary */}
@@ -198,8 +239,8 @@ export default function DoctorHome() {
           <Link href="/doctor/settings" className="w-full text-center px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50">Profile & Settings</Link>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI + Donut row */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-sm text-gray-500">Today Appointments</div>
           <div className="text-2xl font-bold text-gray-900 mt-1">{loading ? '—' : todayCount}</div>
@@ -216,9 +257,25 @@ export default function DoctorHome() {
           <div className="mt-3"><MiniBarChart values={[pendingReviews]} height={48} /></div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-500">Avg Rating</div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">{loading ? '—' : (avgRating ? avgRating.toFixed(1) : '—')}</div>
-          <div className="mt-3"><MiniLineChart values={[avgRating || 0]} /></div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-gray-500">Avg Rating</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{loading ? '—' : (avgRating ? avgRating.toFixed(1) : '—')}</div>
+            </div>
+            <MiniLineChart values={[avgRating || 0]} />
+          </div>
+          <div className="mt-4 flex items-center gap-4">
+            <DonutChart data={donutData} />
+            <div className="space-y-1 text-sm">
+              {donutData.map((d) => (
+                <div key={d.label} className="flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: d.color }} />
+                  <span className="text-gray-600">{d.label}</span>
+                  <span className="ml-auto font-medium text-gray-900">{d.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
