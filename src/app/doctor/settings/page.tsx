@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { doctorAPI, userAPI, authAPI } from '@/lib/api-services';
+import { doctorAPI, authAPI } from '@/lib/api-services';
 import Modal, { ModalFooter } from '@/components/ui/Modal';
 import type { Doctor } from '@/lib/types';
 
@@ -94,27 +94,56 @@ export default function DoctorSettingsPage() {
     return () => window.removeEventListener('hospilink-auth-ready', onReady);
   }, []);
 
-  // Fetch doctor profile (richer data) once username/email known
+  // Fetch doctor profile by username (full DTO)
   React.useEffect(() => {
-    if (!me?.username && !me?.email) return;
+    if (!me?.username) return;
     let cancelled = false;
     (async () => {
       try {
-        const all = await doctorAPI.getAllDoctors();
-        const uname = (me?.username || '').toLowerCase();
-        const mail = (me?.email || '').toLowerCase();
-        type WithUsername = Doctor & { username?: string };
-        const found = (all as WithUsername[]).find(d => (
-          (uname && d.username && d.username.toLowerCase() === uname) ||
-          (mail && d.email && d.email.toLowerCase() === mail)
-        )) || null;
-        if (!cancelled) setDoctor(found || null);
+        const d = await doctorAPI.getByUsername(me.username!);
+        if (!cancelled) {
+          // Map DTO into our Doctor type shape minimally for display fields already used
+          const mapped: Doctor = {
+            id: String(d.id || ''),
+            name: [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim() || d.username || 'Doctor',
+            email: d.email,
+            phone: d.phoneNumber,
+            specialization: d.specialization,
+            department: undefined,
+            departmentId: undefined,
+            experience: typeof d.experienceYears === 'number' ? d.experienceYears : 0,
+            qualification: d.qualification ? d.qualification.split(',').map(q=> q.trim()).filter(Boolean) : undefined,
+            rating: typeof d.rating === 'number' ? d.rating : 0,
+            reviewCount: typeof d.reviewCount === 'number' ? d.reviewCount : 0,
+            location: d.doctorAddress || d.city,
+            availableSlots: (d.availableTimeFrom && d.availableTimeTo) ? [d.availableTimeFrom, d.availableTimeTo] : undefined,
+            isAvailable: Boolean(d.isPresent),
+            createdAt: d.joinedDate ? String(d.joinedDate) : undefined,
+            updatedAt: undefined,
+          } as Doctor;
+          setDoctor(mapped);
+          // Also enrich 'me' with missing fields directly from DTO
+          setMe(prev => prev ? {
+            ...prev,
+            firstName: prev.firstName || d.firstName,
+            middleName: prev.middleName || d.middleName,
+            lastName: prev.lastName || d.lastName,
+            phoneNumber: prev.phoneNumber || d.phoneNumber,
+            address: prev.address || d.doctorAddress,
+            city: prev.city || d.city,
+            state: prev.state || d.state,
+            country: prev.country || d.country,
+            zipCode: prev.zipCode || d.zipCode,
+            age: typeof prev.age === 'number' ? prev.age : (typeof d.age === 'number' ? d.age : prev.age),
+            gender: prev.gender ?? (d.gender as string | null | undefined) ?? null,
+          } : prev);
+        }
       } catch {
         if (!cancelled) setDoctor(null);
       }
     })();
     return () => { cancelled = true; };
-  }, [me?.username, me?.email]);
+  }, [me?.username]);
 
   // Enrich user data via loadOnRefresh if some fields missing
   React.useEffect(() => {
@@ -164,8 +193,13 @@ export default function DoctorSettingsPage() {
 
   const fullName = React.useMemo(() => {
     if (!me) return '';
-    const composed = [me.firstName, me.middleName, me.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-    return (me.name && me.name.trim()) || composed;
+    const composed = [me.firstName, me.middleName, me.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    // Prefer composed pieces so middleName shows; fallback to provided name
+    return composed || (me.name?.trim() || '');
   }, [me]);
 
   const initials = React.useMemo(() => {
@@ -280,19 +314,26 @@ export default function DoctorSettingsPage() {
       {/* Doctor Profile Card (restored) */}
       <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Doctor Profile</h3>
-        {!doctor ? (
+    {!doctor ? (
           <p className="text-sm text-gray-600">Doctor details not available.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Info label="Specialization" value={doctor.specialization || doctor.specialty || '-'} />
-            <Info label="Experience" value={typeof doctor.experience === 'number' ? `${doctor.experience} years` : '-'} />
-            <Info label="Qualification" value={Array.isArray(doctor.qualification) ? (doctor.qualification.join(', ') || '-') : '-'} />
-            <Info label="Clinic / Location" value={doctor.location || '-'} />
-            <Info label="Availability" value={doctor.availableSlots && doctor.availableSlots.length >= 2 ? `${doctor.availableSlots[0]} - ${doctor.availableSlots[1]}` : '—'} />
+      <Info label="Specialization" value={doctor.specialization || '-'} />
+      <Info label="Experience" value={typeof doctor.experience === 'number' ? `${doctor.experience} years` : '-'} />
+      <Info label="Qualification" value={Array.isArray(doctor.qualification) ? (doctor.qualification.join(', ') || '-') : '-'} />
+      <Info label="Clinic / Address" value={me?.address || doctor.location || '-'} />
+      <Info label="City" value={me?.city || '-'} />
+      <Info label="State" value={me?.state || '-'} />
+      <Info label="Country" value={me?.country || '-'} />
+      <Info label="ZIP Code" value={me?.zipCode || '-'} />
+      <Info label="Availability" value={doctor.availableSlots && doctor.availableSlots.length >= 2 ? `${doctor.availableSlots[0]} - ${doctor.availableSlots[1]}` : '—'} />
             <div>
               <div className="text-xs text-gray-500">Status</div>
               <div className="mt-0.5 text-sm">{doctor.isAvailable ? <span className="px-2 py-0.5 rounded-full text-xs border bg-green-50 text-green-700 border-green-200">Present</span> : <span className="px-2 py-0.5 rounded-full text-xs border bg-red-50 text-red-700 border-red-200">Absent</span>}</div>
             </div>
+      <Info label="Rating" value={typeof doctor.rating === 'number' ? `${doctor.rating.toFixed(1)} / 5` : '-'} />
+      <Info label="Reviews" value={typeof doctor.reviewCount === 'number' ? doctor.reviewCount : '-'} />
+      <Info label="Joined" value={doctor.createdAt ? new Date(doctor.createdAt).toLocaleString() : '-'} />
           </div>
         )}
       </section>
@@ -336,8 +377,8 @@ export default function DoctorSettingsPage() {
                 <input
                   type="email"
                   value={form.email}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 text-black"
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
               <div>
@@ -360,16 +401,12 @@ export default function DoctorSettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select
+                <input
+                  type="text"
                   value={form.gender}
-                  onChange={(e) => setForm({ ...form, gender: (e.target.value === 'male' || e.target.value === 'female' || e.target.value === 'other' ? e.target.value : '') as typeof form.gender })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="">Select</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 text-black"
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -442,40 +479,57 @@ export default function DoctorSettingsPage() {
               type="button"
               disabled={saving || !me?.id}
               onClick={async () => {
-                if (!me?.id) return;
+                if (!me?.id || !doctor?.id) return;
                 try {
                   setSaving(true);
                   setSaveError(null);
-                  const payload: Record<string, unknown> = {
-                    firstName: form.firstName.trim() || undefined,
-                    middleName: form.middleName.trim() || undefined,
-                    lastName: form.lastName.trim() || undefined,
-                    phoneNumber: form.phone.trim() || undefined,
-                    gender: form.gender || undefined,
-                    address: form.address.trim() || undefined,
-                    city: form.city.trim() || undefined,
-                    state: form.state.trim() || undefined,
-                    country: form.country.trim() || undefined,
-                    zipCode: form.zipCode.trim() || undefined,
-                    age: form.age.trim() ? Number(form.age.trim()) : undefined,
+                  // Build payload with fallback to previous values if inputs are blank
+                  const t = (v?: string) => (v ?? '').trim();
+                  const prev = {
+                    firstName: me.firstName || '',
+                    middleName: me.middleName || '',
+                    lastName: me.lastName || '',
+                    phoneNumber: me.phoneNumber || '',
+                    email: me.email || '',
+                    city: me.city || '',
+                    state: me.state || '',
+                    zipCode: me.zipCode || '',
+                    address: me.address || '',
+                    age: typeof me.age === 'number' ? me.age : undefined,
                   };
-                  type UpdateResp = {
-                    firstName?: string; middleName?: string; lastName?: string; phoneNumber?: string; gender?: string | null; address?: string; city?: string; state?: string; country?: string; zipCode?: string; age?: number; email?: string; username?: string;
-                  };
-                  const updated = (await userAPI.updateUserById(me.id, payload)) as UpdateResp;
+                  const firstName = t(form.firstName) || prev.firstName;
+                  const middleName = t(form.middleName) || prev.middleName;
+                  const lastName = t(form.lastName) || prev.lastName;
+                  const phoneNumber = t(form.phone) || prev.phoneNumber;
+                  const email = t(form.email) || prev.email;
+                  const city = t(form.city) || prev.city;
+                  const state = t(form.state) || prev.state;
+                  const zipCode = t(form.zipCode) || prev.zipCode;
+                  const address = t(form.address) || prev.address;
+                  const ageParsed = Number(t(form.age));
+                  const age = Number.isFinite(ageParsed) && ageParsed > 0 ? ageParsed : (typeof prev.age === 'number' && prev.age > 0 ? prev.age : 18);
+                  const payload = { firstName, middleName, lastName, phoneNumber, email, age, city, state, zipCode, address };
+                  await doctorAPI.selfUpdateDoctor(doctor.id, payload);
+                  // Reflect changes locally
                   setMe(prev => prev ? {
                     ...prev,
-                    firstName: updated.firstName ?? prev.firstName,
-                    middleName: updated.middleName ?? prev.middleName,
-                    lastName: updated.lastName ?? prev.lastName,
-                    phoneNumber: updated.phoneNumber ?? prev.phoneNumber,
-                    gender: updated.gender ?? prev.gender,
-                    address: updated.address ?? prev.address,
-                    city: updated.city ?? prev.city,
-                    state: updated.state ?? prev.state,
-                    country: updated.country ?? prev.country,
-                    zipCode: updated.zipCode ?? prev.zipCode,
-                    age: typeof updated.age === 'number' ? updated.age : prev.age,
+                    firstName,
+                    middleName,
+                    lastName,
+                    phoneNumber,
+                    address,
+                    city,
+                    state,
+                    zipCode,
+                    age,
+                    email,
+                  } : prev);
+                  setDoctor(prev => prev ? {
+                    ...prev,
+                    name: [firstName, middleName, lastName].filter(Boolean).join(' ').replace(/\s+/g,' ').trim() || prev.name,
+                    email,
+                    phone: phoneNumber,
+                    location: address || prev.location,
                   } : prev);
                   setEditOpen(false);
                 } catch (e) {

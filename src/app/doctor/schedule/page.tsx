@@ -10,7 +10,6 @@ export default function DoctorSchedulePage() {
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState<'idle'|'saving'|'saved'|'error'>('idle');
   const [error, setError] = React.useState<string | null>(null);
-
   const [isPresent, setIsPresent] = React.useState<boolean>(true);
   const [from, setFrom] = React.useState<string>('09:00');
   const [to, setTo] = React.useState<string>('17:00');

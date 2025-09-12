@@ -211,13 +211,64 @@ export const doctorAPI = {
 
   // Get doctor by username (self profile fetch)
   getByUsername: async (username: string) => {
-    const response = await api.get(`/doctor/getDoctorByUsername/${encodeURIComponent(username)}`);
-    return response.data as {
-      id: string;
-      firstName?: string; middleName?: string; lastName?: string; username?: string;
-      email?: string; phoneNumber?: string; specialization?: string;
-      availableTimeFrom?: string; availableTimeTo?: string; isPresent?: boolean;
-    };
+    // Primary endpoint per current backend
+  const url = `/doctor/getDoctorByUsername/${encodeURIComponent(username)}`;
+    try {
+      const response = await api.get(url);
+      return response.data as {
+        id: string;
+        username?: string;
+        firstName?: string;
+        middleName?: string;
+        lastName?: string;
+        age?: number;
+        gender?: string | null;
+        email?: string;
+        phoneNumber?: string;
+        specialization?: string;
+        qualification?: string; // comma-separated
+        experienceYears?: number;
+        doctorAddress?: string;
+        city?: string;
+        state?: string;
+        country?: string;
+        zipCode?: string;
+        isPresent?: boolean;
+        availableTimeFrom?: string;
+        availableTimeTo?: string;
+        rating?: number;
+        reviewCount?: number;
+        joinedDate?: string; // ISO string from LocalDateTime
+      };
+  } catch {
+      // Fallback to alternative route if configured as /getDoctorByUsername/{username}
+      const alt = await api.get(`/getDoctorByUsername/${encodeURIComponent(username)}`);
+      return alt.data as {
+        id: string;
+        username?: string;
+        firstName?: string;
+        middleName?: string;
+        lastName?: string;
+        age?: number;
+        gender?: string | null;
+        email?: string;
+        phoneNumber?: string;
+        specialization?: string;
+        qualification?: string;
+        experienceYears?: number;
+        doctorAddress?: string;
+        city?: string;
+        state?: string;
+        country?: string;
+        zipCode?: string;
+        isPresent?: boolean;
+        availableTimeFrom?: string;
+        availableTimeTo?: string;
+        rating?: number;
+        reviewCount?: number;
+        joinedDate?: string;
+      };
+    }
   },
 
   // Doctor updates own presence flag
@@ -299,6 +350,31 @@ export const doctorAPI = {
       params: { date },
     });
     return response.data;
+  },
+
+  // Doctor self-update (PUT) using DoctorUpdateDto; primary route /doctor/update/{id}, fallback /update/{id}
+  selfUpdateDoctor: async (
+    id: string,
+    payload: {
+      firstName: string;
+      middleName: string;
+      lastName: string;
+      phoneNumber: string;
+      email: string;
+      age: number;
+      city: string;
+      state: string;
+      zipCode: string;
+      address: string;
+    }
+  ) => {
+    try {
+      const res = await api.put(`/doctor/update/${encodeURIComponent(id)}`, payload);
+      return res.data;
+    } catch {
+      const res = await api.put(`/update/${encodeURIComponent(id)}`, payload);
+      return res.data;
+    }
   },
 };
 
