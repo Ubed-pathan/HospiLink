@@ -211,6 +211,8 @@ body {
   color: var(--color-hospital-accent);
 }
 
+
+
 .custom-checkbox:focus {
   ring-color: var(--color-hospital-accent);
   ring-offset-width: 0;
