@@ -2,6 +2,7 @@
 
 import React from "react";
 import { authAPI, userAPI } from "@/lib/api-services";
+import { mockUsers } from "@/lib/mock-data";
 import type { User } from "@/lib/types";
 
 export default function AdminSettingsPage() {
@@ -12,23 +13,85 @@ export default function AdminSettingsPage() {
   const [profileForm, setProfileForm] = React.useState<{ name: string; email: string; phone?: string; address?: string }>({ name: '', email: '' });
   const [savingProfile, setSavingProfile] = React.useState(false);
   const [profileMsg, setProfileMsg] = React.useState<string | null>(null);
+  // Extra admin details primarily from loadOnRefresh
+  const [adminDetails, setAdminDetails] = React.useState<{
+    username?: string;
+    roles?: string[];
+    age?: number;
+    city?: string;
+    state?: string;
+    country?: string;
+    zipCode?: string;
+  } | null>(null);
 
-  // Load user profile safely on client
+  // Helper: ensure we have a usable admin user from available sources
+  const ensureAdminUser = React.useCallback((src?: Partial<User> | null): User => {
+    const mockAdmin = mockUsers.find((u) => u.role === 'admin');
+    return {
+      id: (src?.id as string) || (mockAdmin?.id as string) || 'admin-1',
+      role: (src?.role as User['role']) || (mockAdmin?.role as User['role']) || 'admin',
+      name: (src?.name as string) || (mockAdmin?.name as string) || 'Admin User',
+      email: (src?.email as string) || (mockAdmin?.email as string) || '',
+      phone: (src?.phone as string) || (mockAdmin?.phone as string) || (mockAdmin?.contactNumber as string) || undefined,
+      address: (src?.address as string) || (mockAdmin?.address as string) || undefined,
+      contactNumber: src?.contactNumber,
+      dateOfBirth: src?.dateOfBirth,
+      gender: src?.gender,
+      emergencyContact: src?.emergencyContact,
+      createdAt: src?.createdAt,
+      updatedAt: src?.updatedAt,
+      profileImage: src?.profileImage,
+    } as User;
+  }, []);
+
+  // Load admin profile with fallbacks (user API -> loadOnRefresh -> mock)
   React.useEffect(() => {
     let active = true;
     (async () => {
+      const apply = (u: User) => {
+        setUser(u);
+        setProfileForm({ name: u.name || '', email: u.email || '', phone: u.phone, address: u.address });
+      };
       try {
         const u = await userAPI.getProfile();
         if (!active) return;
-        setUser(u);
-        setProfileForm({ name: u.name || '', email: u.email || '', phone: u.phone, address: u.address });
-      } catch {
+        const ensured = ensureAdminUser(u as unknown as Partial<User>);
+        apply(ensured);
+      } catch {}
+      try {
+        const r = await authAPI.loadOnRefresh();
         if (!active) return;
-        setUser(null);
-      }
+        const fullName = [r?.firstName, r?.middleName, r?.lastName].filter(Boolean).join(' ').trim() || r?.name || undefined;
+        const ensured = ensureAdminUser({
+          id: r?.id,
+          role: (r?.role as User['role']) || 'admin',
+          name: fullName,
+          email: r?.email,
+          phone: r?.phoneNumber || r?.phone,
+          address: r?.address,
+        });
+        apply(ensured);
+        setAdminDetails({
+          username: r?.username,
+          roles: Array.isArray(r?.roles) ? r.roles : undefined,
+          age: typeof r?.age === 'number' ? r.age : undefined,
+          city: r?.city,
+          state: r?.state,
+          country: r?.country,
+          zipCode: r?.zipCode,
+        });
+      } catch {}
+      if (!active) return;
+      const ensured = ensureAdminUser(null);
+      apply(ensured);
+      const mock = mockUsers.find((m) => m.role === 'admin');
+      setAdminDetails({
+        username: (mock?.email?.split('@')[0]) || 'admin',
+        roles: ['ADMIN'],
+      });
     })();
     return () => { active = false; };
-  }, []);
+  }, [ensureAdminUser]);
 
   const initials = React.useMemo(() => {
     const n = (user?.name || '').trim();
@@ -40,11 +103,12 @@ export default function AdminSettingsPage() {
   }, [user?.name]);
 
   const derivedUsername = React.useMemo(() => {
+    if (adminDetails?.username) return adminDetails.username;
     const email = profileForm.email || user?.email || '';
     if (!email) return '';
     const local = email.split('@')[0] || '';
     return local || '';
-  }, [profileForm.email, user?.email]);
+  }, [adminDetails?.username, profileForm.email, user?.email]);
 
   const saveProfile = async () => {
     setProfileMsg(null);
@@ -161,7 +225,19 @@ export default function AdminSettingsPage() {
         </div>
       </section>
 
-  {/* Preferences removed as requested */}
+      {/* Account details from system (read-only) */}
+      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
+        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <KV label="Username" value={derivedUsername || '-'} />
+          <KV label="Roles" value={Array.isArray(adminDetails?.roles) ? adminDetails!.roles.join(', ') : '-'} />
+          <KV label="Age" value={typeof adminDetails?.age === 'number' ? String(adminDetails.age) : '-'} />
+          <KV label="City" value={adminDetails?.city || '-'} />
+          <KV label="State" value={adminDetails?.state || '-'} />
+          <KV label="Country" value={adminDetails?.country || '-'} />
+          <KV label="ZIP code" value={adminDetails?.zipCode || '-'} />
+        </dl>
+      </section>
 
       {/* Security */}
       <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
@@ -194,6 +270,15 @@ export default function AdminSettingsPage() {
           <button onClick={logout} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm font-medium">Logout all devices</button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function KV({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div className="flex flex-col">
+      <dt className="text-xs font-medium text-gray-500">{label}</dt>
+      <dd className="mt-1 text-sm text-gray-900 break-words">{(value ?? '') !== '' ? value : '-'}</dd>
     </div>
   );
 }
