@@ -16,6 +16,7 @@ type Review = {
 
 export default function AdminReviewsPage() {
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string | null>(mockDoctors[0]?.id ?? null);
+  const [query, setQuery] = React.useState('');
 
   const doctors = mockDoctors;
   const reviews = mockReviews as Review[];
@@ -27,6 +28,17 @@ export default function AdminReviewsPage() {
 
   const selectedDoctor = React.useMemo(() => doctors.find(d => d.id === selectedDoctorId) || null, [doctors, selectedDoctorId]);
 
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter(d =>
+      d.name.toLowerCase().includes(q) ||
+      (d.specialty || d.specialization || '').toLowerCase().includes(q)
+    );
+  }, [doctors, query]);
+
+  // If the selected doctor is filtered out, keep selection but show empty list; clicking restores view.
+
   return (
     <div className="min-h-screen bg-white p-4 md:p-6">
       <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4">Reviews</h2>
@@ -34,11 +46,19 @@ export default function AdminReviewsPage() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         {/* Doctors list */}
         <aside className="md:col-span-4 lg:col-span-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="p-3 border-b border-gray-100">
+          <div className="p-3 border-b border-gray-100 space-y-2">
             <div className="text-sm font-medium text-gray-700">Doctors</div>
+            <div>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or specialty..."
+                className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+              />
+            </div>
           </div>
           <ul className="max-h-[70vh] overflow-auto">
-            {doctors.map((doc) => {
+            {filtered.map((doc) => {
               const active = selectedDoctorId === doc.id;
               return (
                 <li key={doc.id}>
