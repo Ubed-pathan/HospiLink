@@ -44,7 +44,7 @@ export default function AdminSettingsPage() {
     } as User;
   }, []);
 
-  // Load admin profile with fallbacks (user API -> loadOnRefresh -> mock)
+  // Load admin profile prioritizing loadOnRefresh (loadOnRefresh -> user API -> mock)
   React.useEffect(() => {
     let active = true;
     (async () => {
@@ -52,12 +52,6 @@ export default function AdminSettingsPage() {
         setUser(u);
         setProfileForm({ name: u.name || '', email: u.email || '', phone: u.phone, address: u.address });
       };
-      try {
-        const u = await userAPI.getProfile();
-        if (!active) return;
-        const ensured = ensureAdminUser(u as unknown as Partial<User>);
-        apply(ensured);
-      } catch {}
       try {
         const r = await authAPI.loadOnRefresh();
         if (!active) return;
@@ -80,6 +74,15 @@ export default function AdminSettingsPage() {
           country: r?.country,
           zipCode: r?.zipCode,
         });
+        return;
+      } catch {}
+      try {
+        const u = await userAPI.getProfile();
+        if (!active) return;
+        const ensured = ensureAdminUser(u as unknown as Partial<User>);
+        apply(ensured);
+        setAdminDetails((prev) => prev || { username: ensured.email?.split('@')[0] || 'admin', roles: ['ADMIN'] });
+        return;
       } catch {}
       if (!active) return;
       const ensured = ensureAdminUser(null);
