@@ -4,6 +4,7 @@ import React from "react";
 import { authAPI, userAPI } from "@/lib/api-services";
 import { mockUsers } from "@/lib/mock-data";
 import type { User } from "@/lib/types";
+import Modal, { ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 export default function AdminSettingsPage() {
   // Local user state (avoid Recoil to prevent ReactCurrentDispatcher error)
@@ -11,8 +12,22 @@ export default function AdminSettingsPage() {
   const [pwForm, setPwForm] = React.useState({ current: '', next: '', confirm: '' });
   const [pwError, setPwError] = React.useState<string | null>(null);
   const [profileForm, setProfileForm] = React.useState<{ name: string; email: string; phone?: string; address?: string }>({ name: '', email: '' });
-  const [savingProfile, setSavingProfile] = React.useState(false);
+  // savingProfile removed; modal save manages UX
   const [profileMsg, setProfileMsg] = React.useState<string | null>(null);
+  // Edit modal state
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editForm, setEditForm] = React.useState<{
+    name: string;
+    email: string;
+    username: string;
+    phone?: string;
+    address?: string;
+    age?: string; // keep as string for controlled input; parse to number on save
+    city?: string;
+    state?: string;
+    country?: string;
+    zipCode?: string;
+  }>({ name: '', email: '', username: '' });
   // Extra admin details primarily from loadOnRefresh
   const [adminDetails, setAdminDetails] = React.useState<{
     username?: string;
@@ -113,28 +128,116 @@ export default function AdminSettingsPage() {
     return local || '';
   }, [adminDetails?.username, profileForm.email, user?.email]);
 
-  const saveProfile = async () => {
+  // Removed inline saveProfile; saving happens via modal saveEdit
+
+  // Open edit modal with current values
+  const openEdit = () => {
+    setEditForm({
+      name: profileForm.name || '',
+      email: profileForm.email || '',
+      username: derivedUsername || '',
+      phone: profileForm.phone,
+      address: profileForm.address,
+      age: (typeof adminDetails?.age === 'number' ? String(adminDetails?.age) : ''),
+      city: adminDetails?.city || '',
+      state: adminDetails?.state || '',
+      country: adminDetails?.country || '',
+      zipCode: adminDetails?.zipCode || '',
+    });
+    setEditOpen(true);
+  };
+
+  // Save from modal (tries API, falls back to local update if API is unavailable)
+  const saveEdit = async () => {
     setProfileMsg(null);
-    if (!profileForm.name?.trim()) {
+    if (!editForm.name?.trim()) {
       setProfileMsg('Name is required');
       return;
     }
-    setSavingProfile(true);
+  // begin modal save
     try {
       const payload: Partial<User> = {
-        name: profileForm.name.trim(),
-        // Allow phone/address updates if provided
-        phone: profileForm.phone,
-        address: profileForm.address,
+        name: editForm.name.trim(),
+        phone: editForm.phone,
+        address: editForm.address,
       };
-      const updated = await userAPI.updateProfile(payload);
-      setUser(updated);
-      setProfileMsg('Profile updated');
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to update profile';
-      setProfileMsg(msg);
+      try {
+        const updated = await userAPI.updateProfile(payload);
+        setUser(updated);
+        setProfileForm({
+          name: updated.name || editForm.name,
+          email: updated.email || editForm.email,
+          phone: updated.phone ?? editForm.phone,
+          address: updated.address ?? editForm.address,
+        });
+        setProfileMsg('Profile updated');
+      } catch {
+        // Graceful fallback: update local UI and inform user (useful when API returns 404 during demo)
+        setProfileForm({
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone,
+          address: editForm.address,
+        });
+        setProfileMsg('Saved locally (API unavailable)');
+      }
+
+      // Try to persist system details via userAPI.updateUserById if we have an id
+      const id = user?.id;
+      const safeNum = (v?: string): number | undefined => {
+        if (v == null) return undefined;
+        const n = parseInt(String(v).trim(), 10);
+        return Number.isFinite(n) ? n : undefined;
+      };
+      const detailsPayload = {
+        age: safeNum(editForm.age) ?? (typeof adminDetails?.age === 'number' ? adminDetails?.age : undefined),
+        city: (editForm.city && editForm.city.trim()) || adminDetails?.city,
+        state: (editForm.state && editForm.state.trim()) || adminDetails?.state,
+        country: (editForm.country && editForm.country.trim()) || adminDetails?.country,
+        zipCode: (editForm.zipCode && editForm.zipCode.trim()) || adminDetails?.zipCode,
+      } as Record<string, unknown>;
+      // Only call API if we have an ID
+      if (id) {
+        try {
+          const updatedAny = await userAPI.updateUserById(id, detailsPayload);
+          // Attempt to read back normalized values, else use what we sent
+          const newAge = (typeof updatedAny?.age === 'number') ? updatedAny.age : detailsPayload.age as number | undefined;
+          const newDetails = {
+            username: adminDetails?.username,
+            roles: adminDetails?.roles,
+            age: newAge,
+            city: (updatedAny?.city as string) ?? (detailsPayload.city as string | undefined),
+            state: (updatedAny?.state as string) ?? (detailsPayload.state as string | undefined),
+            country: (updatedAny?.country as string) ?? (detailsPayload.country as string | undefined),
+            zipCode: (updatedAny?.zipCode as string) ?? (detailsPayload.zipCode as string | undefined),
+          };
+          setAdminDetails(newDetails);
+        } catch {
+          // Local fallback for system details as well
+          setAdminDetails({
+            username: adminDetails?.username,
+            roles: adminDetails?.roles,
+            age: detailsPayload.age as number | undefined,
+            city: detailsPayload.city as string | undefined,
+            state: detailsPayload.state as string | undefined,
+            country: detailsPayload.country as string | undefined,
+            zipCode: detailsPayload.zipCode as string | undefined,
+          });
+        }
+      } else {
+        // No id; just update locally
+        setAdminDetails({
+          username: adminDetails?.username,
+          roles: adminDetails?.roles,
+          age: detailsPayload.age as number | undefined,
+          city: detailsPayload.city as string | undefined,
+          state: detailsPayload.state as string | undefined,
+          country: detailsPayload.country as string | undefined,
+          zipCode: detailsPayload.zipCode as string | undefined,
+        });
+      }
     } finally {
-      setSavingProfile(false);
+      setEditOpen(false);
     }
   };
 
@@ -163,84 +266,117 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
 
-      {/* Profile */}
-      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile</h3>
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
-            {initials}
+      {/* Admin Info - Single consolidated card */}
+      <section className="bg-white/80 backdrop-blur border border-gray-200/60 rounded-xl shadow-sm p-4 md:p-6">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="w-14 h-14 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">{initials}</div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900">Admin Profile</h3>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {Array.isArray(adminDetails?.roles) && adminDetails!.roles.length > 0 ? (
+                adminDetails!.roles.map((r) => (
+                  <span key={r} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs border bg-gray-50 text-gray-700 border-gray-200">{r}</span>
+                ))
+              ) : (
+                <span className="text-xs text-gray-500">No roles</span>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div>
+            <button onClick={openEdit} className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Edit</button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900">Username</label>
+            <input type="text" readOnly aria-disabled="true" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-gray-50 cursor-not-allowed" value={derivedUsername} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900">Email</label>
+            <input type="email" readOnly aria-disabled="true" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-gray-50 cursor-not-allowed" value={profileForm.email} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900">Full name</label>
+            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900">Phone</label>
+            <input type="tel" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={profileForm.phone || ''} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900">Address</label>
+            <input type="text" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={profileForm.address || ''} onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} />
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">System details</h4>
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <KV label="Age" value={typeof adminDetails?.age === 'number' ? String(adminDetails.age) : '-'} />
+            <KV label="City" value={adminDetails?.city || '-'} />
+            <KV label="State" value={adminDetails?.state || '-'} />
+            <KV label="Country" value={adminDetails?.country || '-'} />
+            <KV label="ZIP code" value={adminDetails?.zipCode || '-'} />
+          </dl>
+        </div>
+
+        {profileMsg && (
+          <div className="mt-4 text-xs px-2 py-1 inline-block rounded bg-blue-50 text-blue-700 border border-blue-200">{profileMsg}</div>
+        )}
+      </section>
+
+      {/* Edit Modal (like doctor settings) */}
+      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Admin Profile" size="lg">
+        <ModalBody>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-900">Full name</label>
-              <input
-                type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-              />
+              <label className="block text-sm font-medium text-gray-900">Username</label>
+              <input readOnly aria-disabled="true" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-gray-50 cursor-not-allowed" value={editForm.username} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900">Email</label>
-              <input
-                type="email"
-                aria-disabled="true"
-                readOnly
-                className="mt-1 block w-full border border-gray-300 bg-white rounded-md px-3 py-2 text-sm text-black cursor-not-allowed"
-                value={profileForm.email}
-              />
+              <input readOnly aria-disabled="true" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-gray-50 cursor-not-allowed" value={editForm.email} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900">Username</label>
-              <input
-                type="text"
-                aria-disabled="true"
-                readOnly
-                className="mt-1 block w-full border border-gray-300 bg-white rounded-md px-3 py-2 text-sm text-black cursor-not-allowed"
-                value={derivedUsername}
-              />
+              <label className="block text-sm font-medium text-gray-900">Full name</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900">Phone</label>
-              <input
-                type="tel"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                value={profileForm.phone || ''}
-                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-              />
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-900">Address</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.address || ''} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900">Address</label>
-              <input
-                type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                value={profileForm.address || ''}
-                onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-              />
+              <label className="block text-sm font-medium text-gray-900">Age</label>
+              <input type="number" min={0} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.age || ''} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} />
             </div>
-            <div className="md:col-span-2 flex items-center justify-end">
-              <div className="flex items-center gap-3">
-                <button onClick={saveProfile} disabled={savingProfile} className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-black/85 disabled:opacity-60">{savingProfile ? 'Saving…' : 'Save profile'}</button>
-                {profileMsg && <span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{profileMsg}</span>}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900">City</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.city || ''} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900">State</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.state || ''} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900">Country</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.country || ''} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900">ZIP code</label>
+              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={editForm.zipCode || ''} onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })} />
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Account details from system (read-only) */}
-      <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
-        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <KV label="Username" value={derivedUsername || '-'} />
-          <KV label="Roles" value={Array.isArray(adminDetails?.roles) ? adminDetails!.roles.join(', ') : '-'} />
-          <KV label="Age" value={typeof adminDetails?.age === 'number' ? String(adminDetails.age) : '-'} />
-          <KV label="City" value={adminDetails?.city || '-'} />
-          <KV label="State" value={adminDetails?.state || '-'} />
-          <KV label="Country" value={adminDetails?.country || '-'} />
-          <KV label="ZIP code" value={adminDetails?.zipCode || '-'} />
-        </dl>
-      </section>
+        </ModalBody>
+        <ModalFooter>
+          <button onClick={() => setEditOpen(false)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm">Cancel</button>
+          <button onClick={saveEdit} className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Save</button>
+        </ModalFooter>
+      </Modal>
 
       {/* Security */}
       <section className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
