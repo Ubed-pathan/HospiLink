@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { doctorAPI, authAPI } from '@/lib/api-services';
+import { doctorAPI, authAPI, userAPI } from '@/lib/api-services';
 import Modal, { ModalFooter } from '@/components/ui/Modal';
 import type { Doctor } from '@/lib/types';
 
@@ -222,7 +222,6 @@ export default function DoctorSettingsPage() {
   }, [me?.roles]);
 
   const changePassword = async () => {
-    // Placeholder: backend endpoint may not be wired in this project.
     if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
       setPwError('Fill all fields');
       return;
@@ -231,7 +230,23 @@ export default function DoctorSettingsPage() {
       setPwError('Passwords do not match');
       return;
     }
-    setPwError('Password change will be available soon.');
+    try {
+      setPwError(null);
+      const username = me?.username || '';
+      if (!username) {
+        setPwError('Username not available. Please reload.');
+        return;
+      }
+      const res = await userAPI.changePasswordByUsername(username, pwForm.current, pwForm.next);
+      const msg = (typeof res === 'string') ? res : (res?.message || 'Password changed successfully.');
+      setPwError(msg);
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (e) {
+      const err = e as { response?: { data?: unknown } ; message?: string };
+      const data = err?.response?.data as { message?: string } | string | undefined;
+      const msg = (typeof data === 'string') ? data : (data?.message || err?.message || 'Failed to change password');
+      setPwError(msg);
+    }
   };
 
   return (

@@ -242,7 +242,6 @@ export default function AdminSettingsPage() {
   };
 
   const changePassword = async () => {
-    // Placeholder: backend endpoint not wired in this project.
     if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
       setPwError('Fill all fields');
       return;
@@ -251,7 +250,24 @@ export default function AdminSettingsPage() {
       setPwError('Passwords do not match');
       return;
     }
-    setPwError("Password change will be available soon.");
+    try {
+      setPwError(null);
+      const username = derivedUsername || adminDetails?.username || '';
+      if (!username) {
+        setPwError('Username not available. Please reload.');
+        return;
+      }
+      const res = await userAPI.changePasswordByUsername(username, pwForm.current, pwForm.next);
+      const msg = (typeof res === 'string') ? res : (res?.message || 'Password changed successfully.');
+      setPwError(msg);
+      // Clear fields on success
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (e) {
+      const err = e as { response?: { data?: unknown } ; message?: string };
+      const data = err?.response?.data as { message?: string } | string | undefined;
+      const msg = (typeof data === 'string') ? data : (data?.message || err?.message || 'Failed to change password');
+      setPwError(msg);
+    }
   };
 
   const logout = async () => {
@@ -406,7 +422,6 @@ export default function AdminSettingsPage() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Session</h3>
         <div className="flex items-center gap-3">
           <button onClick={logout} className="px-4 py-2 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 text-sm font-medium">Logout</button>
-          <button onClick={logout} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm font-medium">Logout all devices</button>
         </div>
       </section>
     </div>

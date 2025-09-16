@@ -21,10 +21,22 @@ export const authAPI = {
     return response.data;
   },
 
+  // Send OTP for forgot password flow
+  sendForgetOtp: async (email: string) => {
+    const response = await api.post('/user/send-forget-otp', { email });
+    return response.data as string | { message?: string };
+  },
+
   // Verify OTP
   verifyOTP: async (email: string, otp: string) => {
     const response = await api.post('/user/verify-otp', { email, otp });
     return response.data;
+  },
+
+  // Forgot password submit
+  forgotPassword: async (email: string, password: string) => {
+    const response = await api.post('/user/forgot-password', { email, password });
+    return response.data as string | { message?: string };
   },
 
   // Complete registration (accepts backend UserRegistrationDto shape)
@@ -95,6 +107,16 @@ export const userAPI = {
       newPassword,
     });
     return response.data;
+  },
+
+  // Change password by username using backend endpoint PATCH /change-password/{username}
+  changePasswordByUsername: async (username: string, currentPassword: string, newPassword: string) => {
+    // DTO: { currentPassword, newPassword }
+    const response = await api.patch(`/user/change-password/${encodeURIComponent(username)}`, {
+      currentPassword,
+      newPassword,
+    });
+    return response.data as string | { message?: string };
   },
 
   // Update user by id using backend endpoint /user//updateUser/{id}

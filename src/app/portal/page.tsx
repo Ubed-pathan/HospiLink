@@ -77,7 +77,23 @@ export default function PortalPage() {
       setPwError('Passwords do not match');
       return;
     }
-    setPwError('Password change will be available soon.');
+    try {
+      setPwError(null);
+      const username = authUsername || ((form.email || '').split('@')[0]);
+      if (!username) {
+        setPwError('Username not available. Please reload.');
+        return;
+      }
+      const res = await userAPI.changePasswordByUsername(username, pwForm.current, pwForm.next);
+      const msg = (typeof res === 'string') ? res : (res?.message || 'Password changed successfully.');
+      setPwError(msg);
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (e) {
+      const err = e as { response?: { data?: unknown } ; message?: string };
+      const data = err?.response?.data as { message?: string } | string | undefined;
+      const msg = (typeof data === 'string') ? data : (data?.message || err?.message || 'Failed to change password');
+      setPwError(msg);
+    }
   };
 
   // Appointments state from backend (must be before any early returns)
