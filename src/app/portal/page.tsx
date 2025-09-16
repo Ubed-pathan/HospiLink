@@ -66,6 +66,19 @@ export default function PortalPage() {
     zipCode: '',
     age: '',
   });
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwError, setPwError] = useState<string | null>(null);
+  const changePassword = async () => {
+    if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
+      setPwError('Fill all fields');
+      return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError('Passwords do not match');
+      return;
+    }
+    setPwError('Password change will be available soon.');
+  };
 
   // Appointments state from backend (must be before any early returns)
   const [myAppointments, setMyAppointments] = useState<UsersAppointmentsDto[] | null>(null);
@@ -695,6 +708,51 @@ export default function PortalPage() {
                   <div className="p-4 border rounded-lg md:col-span-2">
                     <div className="text-xs text-gray-500">Address</div>
                     <div className="text-gray-900 font-medium">{profile?.address || authAddress || '—'}</div>
+                  </div>
+                </div>
+
+                {/* Security */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Security</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">Current password</label>
+                      <input
+                        type="password"
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        value={pwForm.current}
+                        onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">New password</label>
+                      <input
+                        type="password"
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        value={pwForm.next}
+                        onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">Confirm password</label>
+                      <input
+                        type="password"
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black bg-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        value={pwForm.confirm}
+                        onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  {pwError && (
+                    <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 mt-3">{pwError}</p>
+                  )}
+                  <div className="mt-4">
+                    <button
+                      onClick={changePassword}
+                      className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                    >
+                      Change password
+                    </button>
                   </div>
                 </div>
               </div>
