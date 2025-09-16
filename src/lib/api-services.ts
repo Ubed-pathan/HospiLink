@@ -33,7 +33,7 @@ export const authAPI = {
     return response.data;
   },
 
-  // Forgot password submit
+  // Forgot password submit   
   forgotPassword: async (email: string, password: string) => {
     const response = await api.post('/user/forgot-password', { email, password });
     return response.data as string | { message?: string };
