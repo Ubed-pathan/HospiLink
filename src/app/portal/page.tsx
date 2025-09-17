@@ -100,6 +100,13 @@ export default function PortalPage() {
   const [myAppointments, setMyAppointments] = useState<UsersAppointmentsDto[] | null>(null);
   const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(false);
+  // Feedback modal state
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackFor, setFeedbackFor] = useState<{ appointmentId: string; doctorId: string; doctorName: string } | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<number>(5);
+  const [feedbackReview, setFeedbackReview] = useState<string>('');
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackSaving, setFeedbackSaving] = useState<boolean>(false);
   const parseDateTime = (dt: string | undefined): { date: string; time: string } => {
     if (!dt) return { date: '', time: '' };
     const normalized = dt.replace(' ', 'T');
@@ -499,6 +506,8 @@ export default function PortalPage() {
             {myAppointments.map((a) => {
               const { date, time } = parseDateTime(a.appointmentTime);
               const docName = a.doctorsFullName || 'Doctor';
+              const isCompleted = String(a.appointmentStatus).toLowerCase() === 'completed';
+              const canGiveFeedback = isCompleted && (a.didUserGiveFeedback === false || a.didUserGiveFeedback === undefined);
               return (
                 <div key={a.appointmentId} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
@@ -515,10 +524,26 @@ export default function PortalPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-2">
                       <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${statusClasses(a.appointmentStatus)}`}>
                         {a.appointmentStatus}
                       </span>
+                      {canGiveFeedback ? (
+                        <button
+                          className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-medium hover:bg-blue-700"
+                          onClick={() => {
+                            setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName });
+                            setFeedbackRating(5);
+                            setFeedbackReview('');
+                            setFeedbackMsg(null);
+                            setFeedbackOpen(true);
+                          }}
+                        >
+                          Give Feedback
+                        </button>
+                      ) : isCompleted ? (
+                        <span className="text-[11px] text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">Feedback sent</span>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -778,6 +803,86 @@ export default function PortalPage() {
       </section>
 
       <Footer />
+      {/* Feedback Modal */}
+      {feedbackOpen && feedbackFor && (
+        <Modal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} title={`Feedback for Dr. ${feedbackFor.doctorName}`} size="md">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Rating</label>
+              <div className="flex items-center gap-1">
+                {[1,2,3,4,5].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setFeedbackRating(r)}
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center ${feedbackRating >= r ? 'bg-yellow-400 border-yellow-500 text-white' : 'bg-white border-gray-300 text-gray-500'}`}
+                    aria-label={`Rate ${r}`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Review (optional)</label>
+              <textarea
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-black bg-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                placeholder="Share your experience"
+                value={feedbackReview}
+                onChange={(e) => setFeedbackReview(e.target.value)}
+              />
+            </div>
+            {feedbackMsg && (
+              <p className="text-sm px-3 py-2 rounded border bg-blue-50 border-blue-200 text-blue-700">{feedbackMsg}</p>
+            )}
+          </div>
+          <ModalFooter>
+            <button
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+              onClick={() => setFeedbackOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              disabled={feedbackSaving}
+              onClick={async () => {
+                if (!feedbackFor) return;
+                if (feedbackRating < 1 || feedbackRating > 5) {
+                  setFeedbackMsg('Please select a rating between 1 and 5.');
+                  return;
+                }
+                try {
+                  setFeedbackSaving(true);
+                  setFeedbackMsg(null);
+                  const res = await appointmentAPI.userFeedback({
+                    appointmentId: feedbackFor.appointmentId,
+                    doctorId: feedbackFor.doctorId,
+                    review: feedbackReview.trim(),
+                    rating: feedbackRating,
+                  });
+                  const msg = typeof res === 'string' ? res : (res?.message || 'Feedback submitted successfully');
+                  setFeedbackMsg(msg);
+                  // Update local appointments to reflect feedback submitted
+                  setMyAppointments((prev) => (prev || []).map((x) => (
+                    x.appointmentId === feedbackFor.appointmentId ? { ...x, didUserGiveFeedback: true } : x
+                  )));
+                  // Close after short delay
+                  setTimeout(() => setFeedbackOpen(false), 800);
+                } catch (e) {
+                  const err = e as { response?: { data?: { message?: string } }; message?: string };
+                  setFeedbackMsg(err?.response?.data?.message || err?.message || 'Failed to submit feedback');
+                } finally {
+                  setFeedbackSaving(false);
+                }
+              }}
+            >
+              {feedbackSaving ? 'Submitting…' : 'Submit Feedback'}
+            </button>
+          </ModalFooter>
+        </Modal>
+      )}
       {/* Settings Modal */}
   {settingsOpen && (
         <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Edit Profile" size="lg">

@@ -525,17 +525,28 @@ export const appointmentAPI = {
 
   // Get only the logged-in user's appointments with doctor info from backend DTO
   getAppointmentsForUser: async (userId: string): Promise<UsersAppointmentsDto[]> => {
-    const response = await api.get<UsersAppointmentsDto[]>(`/appointment/getUserAppointments/${userId}`);
-    const arr = Array.isArray(response.data) ? response.data : [];
+    type BackendUsersAppointmentsDto = {
+      appointmentId: string | number;
+      appointmentStatus?: string;
+      doctorId?: string | number;
+      doctorsFullName?: string;
+      doctorSpecialization?: string | null;
+      appointmentTime: string; // ISO LocalDateTime string
+      reason?: string | null;
+      didUserGiveFeedback?: boolean | null;
+    };
+    const response = await api.get<BackendUsersAppointmentsDto[]>(`/appointment/getUserAppointments/${userId}`);
+    const arr: BackendUsersAppointmentsDto[] = Array.isArray(response.data) ? response.data : [];
     // Ensure minimal normalization (strings)
-    return arr.map(a => ({
+    return arr.map((a) => ({
       appointmentId: String(a.appointmentId),
       appointmentStatus: String(a.appointmentStatus || ''),
       doctorId: String(a.doctorId || ''),
       doctorsFullName: String(a.doctorsFullName || ''),
       doctorSpecialization: a.doctorSpecialization ? String(a.doctorSpecialization) : undefined,
-      appointmentTime: String(a.appointmentTime as unknown as string),
+      appointmentTime: String(a.appointmentTime),
       reason: a.reason ? String(a.reason) : undefined,
+      didUserGiveFeedback: typeof a.didUserGiveFeedback === 'boolean' ? a.didUserGiveFeedback : undefined,
     }));
   },
 
@@ -620,6 +631,12 @@ export const appointmentAPI = {
   updateAppointmentStatus: async (id: string, status: Appointment['status']) => {
     const response = await api.put(`/appointments/${id}/status`, { status });
     return response.data;
+  },
+  
+  // User submits feedback for an appointment; backend @PostMapping("/userFeedback")
+  userFeedback: async (payload: { appointmentId: string; doctorId: string; review: string; rating: number }) => {
+    const response = await api.post(`/userFeedback`, payload);
+    return response.data as string | { message?: string };
   },
 };
 

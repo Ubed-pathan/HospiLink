@@ -301,6 +301,8 @@ export interface UsersAppointmentsDto {
   // ISO local or UTC string (LocalDateTime on backend). Treat as string.
   appointmentTime: string;
   reason?: string;
+  // Whether the user has already submitted feedback for this appointment
+  didUserGiveFeedback?: boolean;
 }
 
 // Backend Doctor Appointments DTO for a doctor's own appointments
