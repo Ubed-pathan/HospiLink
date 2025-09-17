@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { authAPI, userAPI, appointmentAPI } from '@/lib/api-services';
 import type { UsersAppointmentsDto } from '@/lib/types';
 import Modal, { ModalFooter } from '@/components/ui/Modal';
+import RatingStars from '@/components/ui/RatingStars';
 
 type WithPhoneVariants = { phone?: string | null; contactNumber?: string | null; phoneNumber?: string | null; address?: string | null };
 const getPhone = (p?: WithPhoneVariants | null) => (p?.phone || p?.contactNumber || p?.phoneNumber || '')?.toString() || '';
@@ -809,19 +810,7 @@ export default function PortalPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-1">Rating</label>
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setFeedbackRating(r)}
-                    className={`w-8 h-8 rounded-full border flex items-center justify-center ${feedbackRating >= r ? 'bg-yellow-400 border-yellow-500 text-white' : 'bg-white border-gray-300 text-gray-500'}`}
-                    aria-label={`Rate ${r}`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
+              <RatingStars value={feedbackRating} onChange={setFeedbackRating} size="md" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-1">Review (optional)</label>

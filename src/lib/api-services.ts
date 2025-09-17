@@ -633,9 +633,9 @@ export const appointmentAPI = {
     return response.data;
   },
   
-  // User submits feedback for an appointment; backend @PostMapping("/userFeedback")
+  // User submits feedback for an appointment; backend @PostMapping("/appointment/userFeedback")
   userFeedback: async (payload: { appointmentId: string; doctorId: string; review: string; rating: number }) => {
-    const response = await api.post(`/userFeedback`, payload);
+    const response = await api.post(`/appointment/userFeedback`, payload);
     return response.data as string | { message?: string };
   },
 };
