@@ -508,7 +508,8 @@ export default function PortalPage() {
               const { date, time } = parseDateTime(a.appointmentTime);
               const docName = a.doctorsFullName || 'Doctor';
               const isCompleted = String(a.appointmentStatus).toLowerCase() === 'completed';
-              const canGiveFeedback = isCompleted && (a.didUserGiveFeedback === false || a.didUserGiveFeedback === undefined);
+              const canGiveFeedback = isCompleted && a.didUserGiveFeedback !== true;
+              const canEditFeedback = isCompleted && a.didUserGiveFeedback === true;
               return (
                 <div key={a.appointmentId} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
@@ -542,8 +543,20 @@ export default function PortalPage() {
                         >
                           Give Feedback
                         </button>
-                      ) : isCompleted ? (
-                        <span className="text-[11px] text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">Feedback sent</span>
+                      ) : canEditFeedback ? (
+                        <button
+                          className="px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs font-medium hover:bg-purple-700"
+                          onClick={() => {
+                            const fb = Array.isArray(a.feedbacks) && a.feedbacks.length > 0 ? a.feedbacks[0] : null;
+                            setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName });
+                            setFeedbackRating(fb?.rating ?? 5);
+                            setFeedbackReview(fb?.review ?? '');
+                            setFeedbackMsg(null);
+                            setFeedbackOpen(true);
+                          }}
+                        >
+                          Edit Feedback
+                        </button>
                       ) : null}
                     </div>
                   </div>

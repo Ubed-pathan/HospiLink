@@ -303,6 +303,12 @@ export interface UsersAppointmentsDto {
   reason?: string;
   // Whether the user has already submitted feedback for this appointment
   didUserGiveFeedback?: boolean;
+  feedbacks?: Array<{
+    appointmentId: string;
+    doctorId: string;
+    review: string;
+    rating: number;
+  }>;
 }
 
 // Backend Doctor Appointments DTO for a doctor's own appointments
