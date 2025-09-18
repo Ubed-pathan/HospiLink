@@ -525,6 +525,12 @@ export const appointmentAPI = {
 
   // Get only the logged-in user's appointments with doctor info from backend DTO
   getAppointmentsForUser: async (userId: string): Promise<UsersAppointmentsDto[]> => {
+    type BackendFeedback = {
+      appointmentId: string | number;
+      doctorId: string | number;
+      review?: string | null;
+      rating?: number | null;
+    };
     type BackendUsersAppointmentsDto = {
       appointmentId: string | number;
       appointmentStatus?: string;
@@ -534,6 +540,7 @@ export const appointmentAPI = {
       appointmentTime: string; // ISO LocalDateTime string
       reason?: string | null;
       didUserGiveFeedback?: boolean | null;
+      feedbacks?: BackendFeedback[] | null;
     };
     const response = await api.get<BackendUsersAppointmentsDto[]>(`/appointment/getUserAppointments/${userId}`);
     const arr: BackendUsersAppointmentsDto[] = Array.isArray(response.data) ? response.data : [];
@@ -547,12 +554,26 @@ export const appointmentAPI = {
       appointmentTime: String(a.appointmentTime),
       reason: a.reason ? String(a.reason) : undefined,
       didUserGiveFeedback: typeof a.didUserGiveFeedback === 'boolean' ? a.didUserGiveFeedback : undefined,
+      feedbacks: Array.isArray(a.feedbacks)
+        ? a.feedbacks.map((f) => ({
+            appointmentId: String(f.appointmentId),
+            doctorId: String(f.doctorId),
+            review: f.review ? String(f.review) : '',
+            rating: typeof f.rating === 'number' ? f.rating : 0,
+          }))
+        : undefined,
     }));
   },
 
   // Get all appointments for a particular doctor by username from backend DoctorAppointmentDto
   getDoctorAppointments: async (doctorUsername: string): Promise<DoctorAppointmentDto[]> => {
     // Assumption: backend expects username in the path
+    type BackendFeedback = {
+      appointmentId: string | number;
+      doctorId: string | number;
+      review?: string | null;
+      rating?: number | null;
+    };
     type BackendDoctorAppointment = {
       appointmentId: string | number;
       appointmentStatus?: string;
@@ -561,6 +582,8 @@ export const appointmentAPI = {
       userEmail?: string;
       reason?: string | null;
       appointmentTime: string; // ISO string from LocalDateTime
+      didUserGiveFeedback?: boolean | null;
+      feedbacks?: BackendFeedback[] | null;
     };
     const response = await api.get<BackendDoctorAppointment[]>(`/appointment/getDoctorAppointments/${doctorUsername}`);
     const arr: BackendDoctorAppointment[] = Array.isArray(response.data) ? response.data : [];
@@ -572,6 +595,15 @@ export const appointmentAPI = {
       userEmail: String(a.userEmail || ''),
       reason: a.reason ? String(a.reason) : undefined,
       appointmentTime: String(a.appointmentTime),
+      didUserGiveFeedback: typeof a.didUserGiveFeedback === 'boolean' ? a.didUserGiveFeedback : undefined,
+      feedbacks: Array.isArray(a.feedbacks)
+        ? a.feedbacks.map((f) => ({
+            appointmentId: String(f.appointmentId),
+            doctorId: String(f.doctorId),
+            review: f.review ? String(f.review) : '',
+            rating: typeof f.rating === 'number' ? f.rating : 0,
+          }))
+        : undefined,
     }));
   },
 
@@ -707,5 +739,32 @@ export const adminAppointmentAPI = {
     const response = await api.get<AppointmentDtoForAdminDashboard[]>('/appointment/getAllAppointments');
     const arr = Array.isArray(response.data) ? response.data : [];
     return arr;
+  },
+};
+
+// Admin Reviews API
+export const adminReviewAPI = {
+  // Returns feedbacks for a given doctor by doctorId
+  getFeedbacksForAdmin: async (doctorId: string) => {
+    type BackendAdminFeedback = {
+      appointmentId: string | number;
+      appointmentTime: string; // ISO LocalDateTime
+      userFullName?: string;
+      userEmail?: string;
+      doctorFullName?: string;
+      rating?: number;
+      review?: string | null;
+    };
+    const response = await api.get<BackendAdminFeedback[]>(`/getFeedbacksForAdmin/${doctorId}`);
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map((f) => ({
+      appointmentId: String(f.appointmentId),
+      appointmentTime: String(f.appointmentTime),
+      userFullName: String(f.userFullName || ''),
+      userEmail: String(f.userEmail || ''),
+      doctorFullName: String(f.doctorFullName || ''),
+      rating: typeof f.rating === 'number' ? f.rating : 0,
+      review: f.review ? String(f.review) : '',
+    }));
   },
 };

@@ -26,6 +26,7 @@ export interface User {
 export interface Doctor {
   id: string;
   name: string;
+  username?: string;
   email?: string;
   phone?: string;
   specialty?: string;
@@ -321,6 +322,13 @@ export interface DoctorAppointmentDto {
   reason?: string;
   // ISO local datetime string (from LocalDateTime backend)
   appointmentTime: string;
+  didUserGiveFeedback?: boolean;
+  feedbacks?: Array<{
+    appointmentId: string;
+    doctorId: string;
+    review: string;
+    rating: number;
+  }>;
 }
 
 // Backend Patients Of Doctor DTO for /appointment/getAllPatientsOfDoctor/{doctorUsername}
@@ -333,4 +341,15 @@ export interface PatientsOfDoctorDto {
   usersFullName: string;
   usersEmail: string;
   reason?: string;
+}
+
+// Admin feedback DTO for /getFeedbacksForAdmin/{doctorId}
+export interface AdminFeedbackDto {
+  appointmentId: string;
+  appointmentTime: string; // ISO local datetime string from LocalDateTime
+  userFullName: string;
+  userEmail: string;
+  doctorFullName: string;
+  rating: number;
+  review: string;
 }

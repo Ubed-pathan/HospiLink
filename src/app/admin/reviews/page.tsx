@@ -1,32 +1,57 @@
 'use client';
 
 import React from 'react';
-import { mockDoctors, mockReviews } from '@/lib/mock-data';
-
-type Review = {
-  id: string;
-  doctorId: string;
-  patientId: string;
-  patientName?: string;
-  rating: number;
-  comment: string;
-  appointmentId: string;
-  createdAt: string;
-};
+import { doctorAPI, adminReviewAPI } from '@/lib/api-services';
+import type { Doctor, AdminFeedbackDto } from '@/lib/types';
 
 export default function AdminReviewsPage() {
-  const [selectedDoctorId, setSelectedDoctorId] = React.useState<string | null>(mockDoctors[0]?.id ?? null);
+  const [doctors, setDoctors] = React.useState<Doctor[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState('');
+  const [feedbacks, setFeedbacks] = React.useState<AdminFeedbackDto[] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const doctors = mockDoctors;
-  const reviews = mockReviews as Review[];
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const list = await doctorAPI.getAllDoctors();
+        if (!active) return;
+        setDoctors(list);
+        if (list.length > 0) {
+          setSelectedDoctorId(list[0].id);
+        }
+      } catch {
+        // graceful fallback to empty
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
-  const listForDoctor = React.useMemo(() => {
-    if (!selectedDoctorId) return [] as Review[];
-    return reviews.filter(r => r.doctorId === selectedDoctorId);
-  }, [selectedDoctorId, reviews]);
-
-  const selectedDoctor = React.useMemo(() => doctors.find(d => d.id === selectedDoctorId) || null, [doctors, selectedDoctorId]);
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      const doctor = doctors.find(d => d.id === selectedDoctorId);
+      const doctorId = doctor?.id;
+      if (!doctorId) { setFeedbacks([]); return; }
+      try {
+        setLoading(true);
+        setError(null);
+        const list = await adminReviewAPI.getFeedbacksForAdmin(doctorId);
+        if (!active) return;
+        setFeedbacks(list);
+      } catch (e) {
+        if (!active) return;
+        const err = e as { message?: string };
+        setError(err?.message || 'Failed to load reviews');
+        setFeedbacks([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [selectedDoctorId, doctors]);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -37,7 +62,19 @@ export default function AdminReviewsPage() {
     );
   }, [doctors, query]);
 
-  // If the selected doctor is filtered out, keep selection but show empty list; clicking restores view.
+  const selectedDoctor = React.useMemo(() => doctors.find(d => d.id === selectedDoctorId) || null, [doctors, selectedDoctorId]);
+
+  const doctorReviews = React.useMemo(() => {
+    const list = feedbacks || [];
+    return list.map((f) => ({
+      id: f.appointmentId,
+      userName: f.userFullName || 'User',
+      userEmail: f.userEmail || '',
+      rating: f.rating,
+      comment: f.review,
+      createdAt: f.appointmentTime,
+    }));
+  }, [feedbacks]);
 
   return (
     <div className="min-h-screen bg-white p-4 md:p-6">
@@ -63,7 +100,7 @@ export default function AdminReviewsPage() {
               return (
                 <li key={doc.id}>
                   <button
-                    onClick={() => setSelectedDoctorId(doc.id)}
+                    onClick={() => { setSelectedDoctorId(doc.id); }}
                     className={`w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 ${active ? 'bg-gray-50' : ''}`}
                   >
                     <div className="w-9 h-9 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
@@ -102,22 +139,27 @@ export default function AdminReviewsPage() {
 
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-700">Reviews ({listForDoctor.length})</div>
+                  <div className="text-sm font-medium text-gray-700">Reviews ({doctorReviews.length})</div>
                 </div>
-                {listForDoctor.length === 0 ? (
+                {loading ? (
+                  <div className="p-6 text-sm text-gray-500">Loading…</div>
+                ) : error ? (
+                  <div className="p-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded">{error}</div>
+                ) : doctorReviews.length === 0 ? (
                   <div className="p-6 text-sm text-gray-500">No reviews yet for this doctor.</div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
-                    {listForDoctor.map((rev) => (
+                    {doctorReviews.map((rev) => (
                       <li key={rev.id} className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{rev.patientName || 'Anonymous'}</div>
+                            <div className="text-sm font-medium text-gray-900">{rev.userName}</div>
+                            <div className="text-xs text-gray-500">{rev.userEmail}</div>
                             <div className="text-xs text-gray-500">{new Date(rev.createdAt).toLocaleString()}</div>
                           </div>
                           <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
                         </div>
-                        <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{rev.comment}</p>
+                        <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{rev.comment || '—'}</p>
                       </li>
                     ))}
                   </ul>
