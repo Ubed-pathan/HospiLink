@@ -767,4 +767,9 @@ export const adminReviewAPI = {
       review: f.review ? String(f.review) : '',
     }));
   },
+  // Delete a feedback by appointmentId (assumption based on 1:1 feedback per appointment)
+  deleteFeedback: async (appointmentId: string) => {
+    const response = await api.delete(`/appointment/deleteFeedback/${appointmentId}`);
+    return response.data as string | { message?: string };
+  },
 };

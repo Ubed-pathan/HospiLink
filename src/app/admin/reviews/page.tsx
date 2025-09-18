@@ -11,6 +11,7 @@ export default function AdminReviewsPage() {
   const [feedbacks, setFeedbacks] = React.useState<AdminFeedbackDto[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -165,7 +166,29 @@ export default function AdminReviewsPage() {
                             <div className="text-xs text-gray-500">{rev.userEmail}</div>
                             <div className="text-xs text-gray-500">{new Date(rev.createdAt).toLocaleString()}</div>
                           </div>
-                          <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
+                            <button
+                              className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                              disabled={deletingId === rev.id}
+                              onClick={async () => {
+                                const confirmed = window.confirm('Delete this review?');
+                                if (!confirmed) return;
+                                try {
+                                  setDeletingId(rev.id);
+                                  await adminReviewAPI.deleteFeedback(rev.id);
+                                  setFeedbacks((prev) => (prev || []).filter((f) => f.appointmentId !== rev.id));
+                                } catch (e) {
+                                  const err = e as { response?: { data?: { message?: string } }; message?: string };
+                                  alert(err?.response?.data?.message || err?.message || 'Failed to delete review');
+                                } finally {
+                                  setDeletingId(null);
+                                }
+                              }}
+                            >
+                              {deletingId === rev.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </div>
                         </div>
                         <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{rev.comment || '—'}</p>
                       </li>
