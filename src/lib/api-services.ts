@@ -755,7 +755,7 @@ export const adminReviewAPI = {
       rating?: number;
       review?: string | null;
     };
-    const response = await api.get<BackendAdminFeedback[]>(`/getFeedbacksForAdmin/${doctorId}`);
+  const response = await api.get<BackendAdminFeedback[]>(`/appointment/getFeedbacksForAdmin/${doctorId}`);
     const arr = Array.isArray(response.data) ? response.data : [];
     return arr.map((f) => ({
       appointmentId: String(f.appointmentId),

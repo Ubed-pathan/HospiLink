@@ -76,6 +76,14 @@ export default function AdminReviewsPage() {
     }));
   }, [feedbacks]);
 
+  const derivedStats = React.useMemo(() => {
+    const list = feedbacks || [];
+    const count = list.length;
+    if (count === 0) return { avg: 0, count: 0 };
+    const sum = list.reduce((acc, f) => acc + (typeof f.rating === 'number' ? f.rating : 0), 0);
+    return { avg: sum / count, count };
+  }, [feedbacks]);
+
   return (
     <div className="min-h-screen bg-white p-4 md:p-6">
       <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4">Reviews</h2>
@@ -133,7 +141,7 @@ export default function AdminReviewsPage() {
                     <div className="text-base md:text-lg font-semibold text-gray-900">{selectedDoctor.name}</div>
                     <div className="text-xs text-gray-500">{selectedDoctor.specialty || selectedDoctor.specialization}</div>
                   </div>
-                  <div className="text-sm text-gray-600">⭐ {typeof selectedDoctor.rating === 'number' ? selectedDoctor.rating.toFixed(1) : (selectedDoctor.rating ?? '-')} · {(selectedDoctor.reviewCount ?? 0)} reviews</div>
+                  <div className="text-sm text-gray-600">⭐ {derivedStats.count > 0 ? derivedStats.avg.toFixed(1) : '-'} · {derivedStats.count} {derivedStats.count === 1 ? 'review' : 'reviews'}</div>
                 </div>
               </div>
 
