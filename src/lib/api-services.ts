@@ -558,18 +558,18 @@ export const appointmentAPI = {
         ? a.feedbacks.map((f) => {
             type RawFeedback = {
               feedbackId?: string | number;
-              Feedback?: string | number; // sometimes backend might mislabel id
               appointmentId: string | number;
               doctorId: string | number;
               review?: string | null;
+              Feedback?: string | null; // legacy text field name (content, not id)
               rating?: number | null;
             };
             const rf = f as unknown as RawFeedback;
             return {
-              feedbackId: rf.feedbackId ? String(rf.feedbackId) : rf.Feedback ? String(rf.Feedback) : undefined,
+              feedbackId: rf.feedbackId ? String(rf.feedbackId) : undefined,
               appointmentId: String(rf.appointmentId),
               doctorId: String(rf.doctorId),
-              review: rf.review ? String(rf.review) : '',
+              review: rf.review ? String(rf.review) : rf.Feedback ? String(rf.Feedback) : '',
               rating: typeof rf.rating === 'number' ? rf.rating : 0,
             };
           })
@@ -612,18 +612,18 @@ export const appointmentAPI = {
         ? a.feedbacks.map((f) => {
             type RawFeedback = {
               feedbackId?: string | number;
-              Feedback?: string | number;
               appointmentId: string | number;
               doctorId: string | number;
               review?: string | null;
+              Feedback?: string | null; // legacy text field name (content, not id)
               rating?: number | null;
             };
             const rf = f as unknown as RawFeedback;
             return {
-              feedbackId: rf.feedbackId ? String(rf.feedbackId) : rf.Feedback ? String(rf.Feedback) : undefined,
+              feedbackId: rf.feedbackId ? String(rf.feedbackId) : undefined,
               appointmentId: String(rf.appointmentId),
               doctorId: String(rf.doctorId),
-              review: rf.review ? String(rf.review) : '',
+              review: rf.review ? String(rf.review) : rf.Feedback ? String(rf.Feedback) : '',
               rating: typeof rf.rating === 'number' ? rf.rating : 0,
             };
           })
@@ -778,8 +778,8 @@ export const adminReviewAPI = {
       doctorFullName?: string;
       rating?: number;
       review?: string | null;
-      feedbackId?: string | number;
-      Feedback?: string | number; // defensive alternate naming
+  feedbackId?: string | number; // unique identifier
+  Feedback?: string | null; // legacy text content field (alternative to review)
     };
   const response = await api.get<BackendAdminFeedback[]>(`/appointment/getFeedbacksForAdmin/${doctorId}`);
     const arr = Array.isArray(response.data) ? response.data : [];
@@ -790,8 +790,8 @@ export const adminReviewAPI = {
       userEmail: String(f.userEmail || ''),
       doctorFullName: String(f.doctorFullName || ''),
       rating: typeof f.rating === 'number' ? f.rating : 0,
-      review: f.review ? String(f.review) : '',
-      feedbackId: f.feedbackId ? String(f.feedbackId) : f.Feedback ? String(f.Feedback) : undefined,
+      review: f.review ? String(f.review) : f.Feedback ? String(f.Feedback) : '',
+      feedbackId: f.feedbackId ? String(f.feedbackId) : undefined,
     }));
   },
   // Delete a feedback by appointmentId (assumption based on 1:1 feedback per appointment)

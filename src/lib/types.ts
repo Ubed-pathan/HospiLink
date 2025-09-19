@@ -353,6 +353,7 @@ export interface AdminFeedbackDto {
   userEmail: string;
   doctorFullName: string;
   rating: number;
-  review: string;
-  feedbackId?: string; // backend 'Feedback' or 'feedbackId'
+  review: string; // prefer backend 'review'; fallback to 'Feedback' field
+  feedbackId?: string; // unique feedback identifier
+  // (Optional) rawFeedbackField?: string; // could add if backend keeps both
 }
