@@ -68,12 +68,14 @@ export default function AdminReviewsPage() {
   const doctorReviews = React.useMemo(() => {
     const list = feedbacks || [];
     return list.map((f) => ({
-      id: f.appointmentId,
+      id: f.feedbackId || f.appointmentId,
       userName: f.userFullName || 'User',
       userEmail: f.userEmail || '',
       rating: f.rating,
       comment: f.review,
       createdAt: f.appointmentTime,
+      appointmentId: f.appointmentId,
+      feedbackId: f.feedbackId,
     }));
   }, [feedbacks]);
 
@@ -168,26 +170,29 @@ export default function AdminReviewsPage() {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
-                            <button
-                              className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
-                              disabled={deletingId === rev.id}
-                              onClick={async () => {
-                                const confirmed = window.confirm('Delete this review?');
-                                if (!confirmed) return;
-                                try {
-                                  setDeletingId(rev.id);
-                                  await adminReviewAPI.deleteFeedback(rev.id);
-                                  setFeedbacks((prev) => (prev || []).filter((f) => f.appointmentId !== rev.id));
-                                } catch (e) {
-                                  const err = e as { response?: { data?: { message?: string } }; message?: string };
-                                  alert(err?.response?.data?.message || err?.message || 'Failed to delete review');
-                                } finally {
-                                  setDeletingId(null);
-                                }
-                              }}
-                            >
-                              {deletingId === rev.id ? 'Deleting…' : 'Delete'}
-                            </button>
+                            {!!rev.feedbackId && (
+                              <button
+                                className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                                disabled={deletingId === rev.feedbackId}
+                                onClick={async () => {
+                                  const confirmed = window.confirm('Delete this review?');
+                                  if (!confirmed) return;
+                                  try {
+                                    if (!rev.feedbackId) return; // safety
+                                    setDeletingId(rev.feedbackId);
+                                    await adminReviewAPI.deleteFeedback(rev.feedbackId);
+                                    setFeedbacks((prev) => (prev || []).filter((f) => f.feedbackId !== rev.feedbackId));
+                                  } catch (e) {
+                                    const err = e as { response?: { data?: { message?: string } }; message?: string };
+                                    alert(err?.response?.data?.message || err?.message || 'Failed to delete review');
+                                  } finally {
+                                    setDeletingId(null);
+                                  }
+                                }}
+                              >
+                                {deletingId === rev.feedbackId ? 'Deleting…' : 'Delete'}
+                              </button>
+                            )}
                           </div>
                         </div>
                         <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{rev.comment || '—'}</p>

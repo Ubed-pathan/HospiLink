@@ -305,6 +305,7 @@ export interface UsersAppointmentsDto {
   // Whether the user has already submitted feedback for this appointment
   didUserGiveFeedback?: boolean;
   feedbacks?: Array<{
+    feedbackId?: string; // unique identifier for feedback entry
     appointmentId: string;
     doctorId: string;
     review: string;
@@ -324,6 +325,7 @@ export interface DoctorAppointmentDto {
   appointmentTime: string;
   didUserGiveFeedback?: boolean;
   feedbacks?: Array<{
+    feedbackId?: string;
     appointmentId: string;
     doctorId: string;
     review: string;
@@ -352,4 +354,5 @@ export interface AdminFeedbackDto {
   doctorFullName: string;
   rating: number;
   review: string;
+  feedbackId?: string; // backend 'Feedback' or 'feedbackId'
 }
