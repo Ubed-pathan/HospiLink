@@ -418,6 +418,9 @@ export const adminUserAPI = {
       id: string;
       roles?: Array<string> | Set<string>;
       phoneNumber?: string;
+      firstName?: string;
+      middleName?: string;
+      lastName?: string;
     };
     const response = await api.get<BackendUserDto[]>('/user/getAllUsers');
     const arr = Array.isArray(response.data) ? response.data : [];
@@ -434,15 +437,19 @@ export const adminUserAPI = {
       if (roles.includes('doctor')) return 'doctor';
       return 'patient';
     };
-    const users: User[] = arr.map((u) => ({
-      id: u.id,
-      email: u.email || '',
-      name: u.fullName || u.username || 'User',
-      roles: normalizeRoles(u.roles),
-      role: pickPrimary(normalizeRoles(u.roles)),
-      phone: u.phoneNumber,
-      contactNumber: u.phoneNumber,
-    }));
+    const users: User[] = arr.map((u) => {
+      const rolesNorm = normalizeRoles(u.roles);
+      const composed = [u.firstName, u.middleName, u.lastName].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+      return {
+        id: u.id,
+        email: u.email || '',
+        name: composed || u.fullName || u.username || 'User',
+        roles: rolesNorm,
+        role: pickPrimary(rolesNorm),
+        phone: u.phoneNumber,
+        contactNumber: u.phoneNumber,
+      };
+    });
     return users;
   },
   create: async (payload: AdminUserFormData): Promise<User> => {

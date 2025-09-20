@@ -51,12 +51,7 @@ export default function AdminUsersPage() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     const matchesQuery = (u: User) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.role || '').toLowerCase().includes(q);
-    const matchesRole = (u: User) => {
-      const roles = (u.roles && u.roles.length ? u.roles : [u.role]) as Array<'patient' | 'doctor' | 'admin'>;
-      // Only show users that have admin role
-      return roles.includes('admin');
-    };
-    return users.filter((u) => matchesQuery(u) && matchesRole(u));
+    return users.filter((u) => matchesQuery(u));
   }, [users, search]);
 
   // Creation of users is disabled on this view

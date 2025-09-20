@@ -302,24 +302,24 @@ export default function DoctorSettingsPage() {
         </div>
       </section>
 
-      {/* Account details */}
-      <section className="rounded-xl p-4 md:p-6 shadow-sm border border-[#24425D]/40 bg-gradient-to-br from-[#0E1F2F] via-[#24425D] to-[#8747D0] text-white">
-        <h3 className="text-base md:text-lg font-semibold mb-4 tracking-tight">Account Details</h3>
+      {/* Account details (reverted style) */}
+      <section className="bg-white/80 backdrop-blur border border-gray-200/60 shadow-sm rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          <KV invert label="Full name" value={fullName || '-'} />
-          <KV invert label="Email" value={me?.email || '-'} />
-          <KV invert label="Username" value={displayUsername || '-'} />
-          <KV invert label="Roles" value={rolesText || '-'} />
-            <KV invert label="Phone" value={me?.phoneNumber || '-'} />
-          <KV invert label="Gender" value={(me?.gender ?? '-') as string} />
-          <KV invert label="Age" value={(me?.age ?? '-') as unknown as string} />
+          <KV label="Full name" value={fullName || '-'} />
+          <KV label="Email" value={me?.email || '-'} />
+          <KV label="Username" value={displayUsername || '-'} />
+          <KV label="Roles" value={rolesText || '-'} />
+          <KV label="Phone" value={me?.phoneNumber || '-'} />
+          <KV label="Gender" value={(me?.gender ?? '-') as string} />
+          <KV label="Age" value={(me?.age ?? '-') as unknown as string} />
           <div className="sm:col-span-2">
-            <KV invert label="Address" value={me?.address || '-'} />
+            <KV label="Address" value={me?.address || '-'} />
           </div>
-          <KV invert label="City" value={me?.city || '-'} />
-          <KV invert label="State" value={me?.state || '-'} />
-          <KV invert label="Country" value={me?.country || '-'} />
-          <KV invert label="ZIP code" value={me?.zipCode || '-'} />
+          <KV label="City" value={me?.city || '-'} />
+          <KV label="State" value={me?.state || '-'} />
+          <KV label="Country" value={me?.country || '-'} />
+          <KV label="ZIP code" value={me?.zipCode || '-'} />
         </dl>
       </section>
 
