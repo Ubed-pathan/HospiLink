@@ -12,6 +12,7 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -171,27 +172,45 @@ export default function AdminReviewsPage() {
                           <div className="flex items-center gap-3">
                             <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
                             {!!rev.feedbackId && (
-                              <button
-                                className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
-                                disabled={deletingId === rev.feedbackId}
-                                onClick={async () => {
-                                  const confirmed = window.confirm('Delete this review?');
-                                  if (!confirmed) return;
-                                  try {
-                                    if (!rev.feedbackId) return; // safety
-                                    setDeletingId(rev.feedbackId);
-                                    await adminReviewAPI.deleteFeedback(rev.feedbackId);
-                                    setFeedbacks((prev) => (prev || []).filter((f) => f.feedbackId !== rev.feedbackId));
-                                  } catch (e) {
-                                    const err = e as { response?: { data?: { message?: string } }; message?: string };
-                                    alert(err?.response?.data?.message || err?.message || 'Failed to delete review');
-                                  } finally {
-                                    setDeletingId(null);
-                                  }
-                                }}
-                              >
-                                {deletingId === rev.feedbackId ? 'Deleting…' : 'Delete'}
-                              </button>
+                              confirmDeleteId === rev.feedbackId ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    className="text-xs px-2 py-1 rounded border border-red-500 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                                    disabled={deletingId === rev.feedbackId}
+                                    onClick={async () => {
+                                      try {
+                                        if (!rev.feedbackId) return;
+                                        setDeletingId(rev.feedbackId);
+                                        await adminReviewAPI.deleteFeedback(rev.feedbackId);
+                                        setFeedbacks((prev) => (prev || []).filter((f) => f.feedbackId !== rev.feedbackId));
+                                      } catch (e) {
+                                        const err = e as { response?: { data?: { message?: string } }; message?: string };
+                                        alert(err?.response?.data?.message || err?.message || 'Failed to delete review');
+                                      } finally {
+                                        setDeletingId(null);
+                                        setConfirmDeleteId(null);
+                                      }
+                                    }}
+                                  >
+                                    {deletingId === rev.feedbackId ? 'Deleting…' : 'Confirm'}
+                                  </button>
+                                  <button
+                                    className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                    disabled={deletingId === rev.feedbackId}
+                                    onClick={() => setConfirmDeleteId(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                                  disabled={deletingId === rev.feedbackId}
+                                  onClick={() => setConfirmDeleteId(rev.feedbackId || null)}
+                                >
+                                  Delete
+                                </button>
+                              )
                             )}
                           </div>
                         </div>
