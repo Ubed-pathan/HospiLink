@@ -307,23 +307,26 @@ export default function PortalPage() {
     {
       icon: FileText,
       label: 'Medical Records',
-      value: '12',
+      value: '—',
       color: 'text-green-600',
-      bg: 'bg-green-50'
+      bg: 'bg-green-50',
+      comingSoon: true
     },
     {
       icon: Pill,
       label: 'Active Prescriptions',
-      value: '3',
+      value: '—',
       color: 'text-purple-600',
-      bg: 'bg-purple-50'
+      bg: 'bg-purple-50',
+      comingSoon: true
     },
     {
       icon: Activity,
       label: 'Health Score',
-      value: '85%',
+      value: '—',
       color: 'text-red-600',
-      bg: 'bg-red-50'
+      bg: 'bg-red-50',
+      comingSoon: true
     }
   ];
 
@@ -351,7 +354,12 @@ export default function PortalPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] md:text-sm text-gray-600 mb-1">{stat.label}</p>
-                <p className="text-base md:text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-base md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  {stat.value}
+                  {stat.comingSoon && (
+                    <span className="inline-block text-[9px] md:text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">Soon</span>
+                  )}
+                </p>
               </div>
               <div className={`w-8 h-8 md:w-12 md:h-12 ${stat.bg} rounded-full flex items-center justify-center`}>
                 <stat.icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color}`} />
