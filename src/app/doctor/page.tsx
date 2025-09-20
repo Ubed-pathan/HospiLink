@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import MiniBarChart from '@/components/charts/MiniBarChart';
-import MiniLineChart from '@/components/charts/MiniLineChart';
 import DonutChart from '@/components/charts/DonutChart';
 import { appointmentAPI, doctorAPI, reviewAPI } from '@/lib/api-services';
 
@@ -343,7 +342,7 @@ export default function DoctorHome() {
                 )}
               </div>
             </div>
-            <MiniLineChart values={[avgRating || 0]} />
+            {/* Removed sparkline per request */}
           </div>
           <div className="mt-4 flex items-center gap-4">
             <DonutChart data={donutData} />
@@ -357,6 +356,11 @@ export default function DoctorHome() {
               ))}
             </div>
           </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-sm text-gray-500">Total Appointments</div>
+          <div className="text-2xl font-bold text-gray-900 mt-1">{loading ? '—' : appts.length}</div>
+          <div className="mt-3"><MiniBarChart values={[appts.length]} height={48} /></div>
         </div>
       </div>
 
