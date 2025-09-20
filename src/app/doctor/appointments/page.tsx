@@ -49,6 +49,8 @@ export default function DoctorAppointmentsPage() {
   const [status, setStatus] = React.useState<StatusFilter>('all');
   const [query, setQuery] = React.useState('');
   const [rowBusy, setRowBusy] = React.useState<Record<string, 'complete' | 'cancel' | null>>({});
+  const [avgRating, setAvgRating] = React.useState(0);
+  const [reviewCount, setReviewCount] = React.useState(0);
 
   // Hydrate doctor id from global auth
   React.useEffect(() => {
@@ -77,6 +79,42 @@ export default function DoctorAppointmentsPage() {
       setLoading(false);
     }
   }, []);
+
+  // Derive average rating & review count from embedded feedbacks
+  React.useEffect(() => {
+    if (!items || !items.length) {
+      setAvgRating(0);
+      setReviewCount(0);
+      return;
+    }
+    // Flatten all feedbacks
+    const all = items.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
+    if (!all.length) {
+      setAvgRating(0);
+      setReviewCount(0);
+      return;
+    }
+    type FeedbackLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
+    const extract = (f: FeedbackLike): number | null => {
+      const raw = f?.rating ?? f?.Rating ?? f?.stars ?? f?.score;
+      if (typeof raw === 'number' && !isNaN(raw)) return raw;
+      if (typeof raw === 'string') {
+        const cleaned = raw.trim();
+        const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
+        const num = parseFloat(part);
+        if (!isNaN(num)) return num;
+      }
+      return null;
+    };
+    const ratings = all.map(extract).filter((n): n is number => n !== null && n >= 0);
+    setReviewCount(ratings.length);
+    if (!ratings.length) {
+      setAvgRating(0);
+      return;
+    }
+    const sum = ratings.reduce((acc, n) => acc + n, 0);
+    setAvgRating(sum / ratings.length);
+  }, [items]);
 
   React.useEffect(() => {
     if (!doctorUsername) return;
@@ -128,7 +166,24 @@ export default function DoctorAppointmentsPage() {
           <h2 className="text-2xl font-bold text-gray-900">Appointments</h2>
           <p className="text-sm text-gray-600 mt-1">View and manage your appointments</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <div className="text-sm text-gray-500">Loading rating…</div>
+            ) : reviewCount > 0 ? (
+              <div className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 shadow-sm">
+                <div className="flex items-center gap-1" aria-label={`Average rating ${avgRating.toFixed(1)} out of 5`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className={i < Math.round(avgRating) ? 'text-yellow-500' : 'text-gray-300'}>★</span>
+                  ))}
+                  <span className="font-semibold text-gray-900 ml-1">{avgRating.toFixed(1)}</span>
+                </div>
+                <span className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs text-gray-500">No reviews yet</div>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="sm"

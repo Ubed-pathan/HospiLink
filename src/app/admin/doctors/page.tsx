@@ -249,6 +249,7 @@ export default function AdminDoctorsPage() {
           <table className="min-w-full table-fixed text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-600 border-b">
+                <th className="py-2.5 px-3 w-[60px]">Sr. No</th>
                 <th className="py-2.5 px-3 w-[220px]">Name</th>
                 <th className="py-2.5 px-3 w-[180px]">Specialization</th>
                 <th className="py-2.5 px-3 w-[90px]">Experience</th>
@@ -260,15 +261,16 @@ export default function AdminDoctorsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((d) => (
+              {filtered.map((d, idx) => (
         <tr key={d.id} className="hover:bg-hospital-accent/5">
+                  <td className="py-2.5 px-3 w-[60px] text-gray-600 text-xs font-medium">{idx + 1}</td>
                   <td className="py-2.5 px-3 text-gray-900 w-[220px]">
-                    <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-hospital-secondary text-white flex items-center justify-center text-xs font-semibold">
+                    <div className="flex items-center gap-1.5">
+          <div className="w-6 h-6 rounded bg-hospital-secondary text-white flex items-center justify-center text-[10px] font-semibold">
                         {(d.name || 'DR').split(' ').map(n => n[0]).join('').slice(0,2)}
                       </div>
                       <div>
-                        <div className="font-medium">{d.name}</div>
+                        <div className="font-medium leading-tight">{d.name}</div>
                         <div className="text-xs text-gray-500">ID: {d.id.slice(0,6)}…</div>
                       </div>
                     </div>
@@ -297,7 +299,7 @@ export default function AdminDoctorsPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-gray-500">No doctors found.</td>
+                  <td colSpan={9} className="py-6 text-center text-gray-500">No doctors found.</td>
                 </tr>
               )}
             </tbody>

@@ -5,15 +5,16 @@ import Link from 'next/link';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import MiniLineChart from '@/components/charts/MiniLineChart';
 import DonutChart from '@/components/charts/DonutChart';
-import { adminAppointmentAPI, doctorAPI, reviewAPI } from '@/lib/api-services';
+import { appointmentAPI, doctorAPI, reviewAPI } from '@/lib/api-services';
 
-type AdminAppt = import('@/lib/types').AppointmentDtoForAdminDashboard;
+type DoctorAppt = import('@/lib/types').DoctorAppointmentDto;
 type Doctor = import('@/lib/types').Doctor;
 
-function parseApptDate(a: AdminAppt): Date | null {
-  const ts = a.appointmentTime || a.appointmentDateTime || a.createdAt;
+function parseApptDate(a: { appointmentTime?: string | null }): Date | null {
+  const ts = a.appointmentTime;
   if (!ts) return null;
-  const d = new Date(ts);
+  const normalized = ts.replace(' ', 'T');
+  const d = new Date(normalized);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -26,18 +27,12 @@ function formatTime(d: Date): string {
   return `${hours}:${mm} ${ampm}`;
 }
 
-function getStatus(a: AdminAppt): string {
-  const anyA = a as AdminAppt & { appointmentStatus?: string; AppointmentStatus?: string };
-  return (
-    a.status || anyA.appointmentStatus || anyA.AppointmentStatus || ''
-  )
-    .toString()
-    .toLowerCase();
+function getStatus(a: { appointmentStatus?: string | null; status?: string | null }): string {
+  return (a.appointmentStatus || a.status || '').toString().toLowerCase();
 }
 
-function getUserEmailLocal(a: AdminAppt): string | undefined {
-  const withEmail = a as AdminAppt & { usersEmail?: string };
-  const email = withEmail.usersEmail;
+function getUserEmailLocal(a: { userEmail?: string | null; usersEmail?: string | null }): string | undefined {
+  const email = a.userEmail || a.usersEmail || undefined;
   return email ? email.split('@')[0] : undefined;
 }
 
@@ -45,10 +40,14 @@ export default function DoctorHome() {
   const [loading, setLoading] = React.useState(true);
   const [, setError] = React.useState<string | null>(null);
   const [, setDoctor] = React.useState<Doctor | null>(null);
-  const [appts, setAppts] = React.useState<AdminAppt[]>([]);
+  const [appts, setAppts] = React.useState<DoctorAppt[]>([]);
   const [avgRating, setAvgRating] = React.useState<number>(0);
   const [pendingReviews, setPendingReviews] = React.useState<number>(0);
+  const [reviewCount, setReviewCount] = React.useState<number>(0);
   const [me, setMe] = React.useState<{ id?: string; name?: string; email?: string; username?: string } | null>(null);
+  const [isPresent, setIsPresent] = React.useState<boolean | null>(null);
+  const [presenceUpdating, setPresenceUpdating] = React.useState(false);
+  const [presenceError, setPresenceError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -59,84 +58,114 @@ export default function DoctorHome() {
     } catch {}
     const onReady = (e: Event) => {
       const detail = (e as CustomEvent).detail as { isAuthenticated: boolean; user?: { id?: string; email?: string; name?: string; username?: string } } | undefined;
-      if (detail?.isAuthenticated) setMe(detail.user || null);
+      if (detail?.isAuthenticated) {
+        setMe(detail.user || null);
+      }
     };
     window.addEventListener('hospilink-auth-ready', onReady, { once: true });
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; email?: string; role?: string; roles?: string[] } } };
+  const w = window as unknown as { __HOSPILINK_AUTH__?: { user?: { id?: string; email?: string; role?: string; roles?: string[]; username?: string } } };
         const me = w.__HOSPILINK_AUTH__?.user;
         const myId = me?.id;
         const myEmail = me?.email;
+        const myUsername = me?.username;
 
-        // Fetch all dashboard appointments then filter by current doctor
-  const raw = await adminAppointmentAPI.getAllForDashboard();
-        const mine = raw.filter((a) => {
-          const did = (a.doctorId || '') as string;
-          const demail = (a as AdminAppt & { doctorsEmail?: string }).doctorsEmail;
-          const okById = myId && did && did === myId;
-          const okByEmail = myEmail && demail && demail.toLowerCase() === myEmail.toLowerCase();
-          return okById || okByEmail;
-        });
-        // Sort by time ascending
-        mine.sort((a, b) => {
+        // Prefer direct doctor appointments API (authoritative)
+        let doctorAppts: DoctorAppt[] = [];
+        if (myUsername) {
+          try {
+            doctorAppts = await appointmentAPI.getDoctorAppointments(myUsername);
+          } catch {
+            doctorAppts = [];
+          }
+        }
+        // Sort ascending by time
+        doctorAppts.sort((a, b) => {
           const da = parseApptDate(a)?.getTime() ?? 0;
           const db = parseApptDate(b)?.getTime() ?? 0;
           return da - db;
         });
-        if (!cancelled) {
-          if (mine.length === 0) {
-            // Demo fallback data to showcase dashboard visuals
-            const today = new Date();
-            const mk = (h: number, status: string, reason: string) => ({
-              id: `demo-${h}-${status}`,
-              doctorId: myId || 'demo-doc',
-              appointmentTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, 0, 0).toISOString(),
-              status,
-              usersFullName: ['Rohan', 'Aisha', 'Karan', 'Neha', 'Zoya'][Math.floor(Math.random()*5)],
-              reason,
-              doctorsEmail: myEmail || 'doctor@example.com',
-            }) as unknown as AdminAppt;
-            setAppts([
-              mk(9, 'scheduled', 'Consultation'),
-              mk(11, 'confirmed', 'Follow-up'),
-              mk(14, 'completed', 'Reports Review'),
-              mk(16, 'cancelled', '—'),
-              mk(18, 'scheduled', 'Consultation'),
-            ]);
-          } else {
-            setAppts(mine);
-          }
-        }
+        if (!cancelled) setAppts(doctorAppts);
 
-        // Find my doctor profile for rating (match by email or id)
+        // Find my doctor profile (kept for potential fallback)
         try {
           const docs = await doctorAPI.getAllDoctors();
           const d = docs.find((x) => (myId && x.id === myId) || (myEmail && x.email && x.email.toLowerCase() === myEmail.toLowerCase())) || null;
           if (!cancelled) setDoctor(d);
-          if (!cancelled && d && typeof d.rating === 'number') {
-            setAvgRating(d.rating);
+          if (!cancelled && d && typeof (d as { isPresent?: unknown }).isPresent === 'boolean') {
+            setIsPresent(!!(d as { isPresent?: boolean }).isPresent);
           }
+          // We don't set avgRating from doctor profile anymore; prefer live review aggregation below
         } catch {}
 
-        // Reviews: compute average and pending = completed appts without reviews
+        // Reviews: compute average and pending = completed appts without reviews.
+        // Fallback: if direct reviews API returns 0, derive from embedded appointment feedbacks.
         if (myId) {
           try {
             const reviews = await reviewAPI.getDoctorReviews(myId);
-            if (Array.isArray(reviews) && reviews.length) {
-              const sum = reviews.reduce((acc: number, r: { rating?: number }) => acc + (typeof r.rating === 'number' ? r.rating : 0), 0);
-              const avg = sum / reviews.length;
-              if (!cancelled) setAvgRating((prev) => (prev > 0 ? prev : avg));
+            type ReviewLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
+            const extractRating = (r: ReviewLike): number | null => {
+              const raw = r?.rating ?? r?.Rating ?? r?.stars ?? r?.score;
+              if (typeof raw === 'number' && !isNaN(raw)) return raw;
+              if (typeof raw === 'string') {
+                const cleaned = raw.trim();
+                const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
+                const num = parseFloat(part);
+                if (!isNaN(num)) return num;
+              }
+              return null;
+            };
+            let validRatings: number[] = Array.isArray(reviews) ? reviews.map(extractRating).filter((n): n is number => n !== null && n >= 0) : [];
+            // Fallback to embedded feedbacks in appointments if none from API
+            if (!validRatings.length) {
+              const embedded = doctorAppts.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
+              type EmbeddedLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
+              const embeddedRatings = embedded.map((f: EmbeddedLike) => extractRating(f)).filter((n): n is number => n !== null && !isNaN(n) && n >= 0);
+              validRatings = embeddedRatings;
             }
-            const completed = mine.filter((a) => {
-              const s = (a.status || (a as AdminAppt & { appointmentStatus?: string; AppointmentStatus?: string }).appointmentStatus || (a as AdminAppt & { appointmentStatus?: string; AppointmentStatus?: string }).AppointmentStatus || '').toString().toLowerCase();
+            if (!cancelled) setReviewCount(validRatings.length);
+            if (validRatings.length) {
+              const sum = validRatings.reduce((acc, n) => acc + n, 0);
+              const avg = sum / validRatings.length;
+              if (!cancelled) setAvgRating(avg);
+            } else if (!cancelled) {
+              setAvgRating(0);
+            }
+            const completed = doctorAppts.filter((a) => {
+              const s = (a.appointmentStatus || '').toString().toLowerCase();
               return s === 'completed' || s === 'confirmed';
             }).length;
-            const pending = Math.max(0, completed - (Array.isArray(reviews) ? reviews.length : 0));
+            const pending = Math.max(0, completed - validRatings.length);
             if (!cancelled) setPendingReviews(pending);
-          } catch {}
+          } catch {
+            // On error fallback to embedded feedbacks entirely
+            const embedded = doctorAppts.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
+            type FallbackLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
+            const extractFallback = (f: FallbackLike): number | null => {
+              const raw = f?.rating ?? f?.Rating ?? f?.stars ?? f?.score;
+              if (typeof raw === 'number' && !isNaN(raw)) return raw;
+              if (typeof raw === 'string') {
+                const cleaned = raw.trim();
+                const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
+                const num = parseFloat(part);
+                if (!isNaN(num)) return num;
+              }
+              return null;
+            };
+            const ratings = embedded.map(extractFallback).filter((n): n is number => n !== null && n >= 0);
+            if (!cancelled) {
+              setReviewCount(ratings.length);
+              setAvgRating(ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 0);
+              const completed = doctorAppts.filter((a) => {
+                const s = (a.appointmentStatus || '').toString().toLowerCase();
+                return s === 'completed' || s === 'confirmed';
+              }).length;
+              setPendingReviews(Math.max(0, completed - ratings.length));
+            }
+          }
         }
       } catch (e) {
         const err = e as { message?: string } | undefined;
@@ -209,7 +238,7 @@ export default function DoctorHome() {
   return (
     <div className="space-y-6">
       {/* Current Doctor Summary */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-base font-bold">
             {(() => {
@@ -229,6 +258,42 @@ export default function DoctorHome() {
               {me?.email || ''}{me?.username ? ((me?.email ? ' · ' : '') + `@${me.username}`) : ''}
             </div>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Status:</span>
+            <button
+              type="button"
+              disabled={presenceUpdating || isPresent===null}
+              onClick={async () => {
+                if (!me?.username) return;
+                if (isPresent === null) return;
+                const next = !isPresent;
+                setPresenceUpdating(true);
+                setPresenceError(null);
+                setIsPresent(next); // optimistic
+                try {
+                  if (typeof doctorAPI.updateDoctorPresentyStatus === 'function') {
+                    await doctorAPI.updateDoctorPresentyStatus(me.username, next);
+                  }
+                } catch (e) {
+                  setIsPresent(!next); // revert
+                  const msg = (e as { message?: string })?.message || 'Failed to update status';
+                  setPresenceError(msg);
+                } finally {
+                  setPresenceUpdating(false);
+                }
+              }}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium shadow-sm transition ${
+                isPresent ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+              } ${presenceUpdating ? 'opacity-60 cursor-wait' : ''}`}
+              aria-pressed={!!isPresent}
+            >
+              <span className={`inline-block w-2 h-2 rounded-full ${isPresent ? 'bg-green-500' : 'bg-red-500'}`} />
+              {presenceUpdating ? 'Updating…' : isPresent ? 'Present (Tap to mark Absent)' : 'Absent (Tap to mark Present)'}
+            </button>
+          </div>
+          {presenceError && <div className="text-xs text-red-600" role="alert">{presenceError}</div>}
         </div>
       </div>
       <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -257,10 +322,26 @@ export default function DoctorHome() {
           <div className="mt-3"><MiniBarChart values={[pendingReviews]} height={48} /></div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <div className="text-sm text-gray-500">Avg Rating</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{loading ? '—' : (avgRating ? avgRating.toFixed(1) : '—')}</div>
+              <div className="text-sm text-gray-500 flex items-center gap-1">
+                Avg Rating
+                {!loading && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                    {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-bold text-gray-900">{loading ? '—' : (reviewCount ? avgRating.toFixed(1) : '—')}</div>
+                {!loading && reviewCount > 0 && (
+                  <div className="flex items-center gap-0.5" aria-label={`Average rating ${avgRating.toFixed(1)} out of 5`}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} className={i < Math.round(avgRating) ? 'text-yellow-500' : 'text-gray-300'}>★</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <MiniLineChart values={[avgRating || 0]} />
           </div>
@@ -302,7 +383,7 @@ export default function DoctorHome() {
                   <tr><td colSpan={3} className="py-4 text-center text-gray-500">No upcoming appointments.</td></tr>
                 )}
                 {!loading && upcoming.slice(0, 6).map(({ a, dt }, idx) => (
-                  <tr key={(a.id || a.appointmentId || idx) as React.Key} className="hover:bg-gray-50/50">
+                  <tr key={(a.appointmentId || idx) as React.Key} className="hover:bg-gray-50/50">
                     <td className="py-2.5 pr-4 text-gray-900 font-medium whitespace-nowrap">{dt ? formatTime(dt) : '-'}</td>
                     <td className="py-2.5 pr-4 text-gray-900 whitespace-nowrap">{a.usersFullName || getUserEmailLocal(a) || 'Patient'}</td>
                     <td className="py-2.5 pr-4 whitespace-nowrap">

@@ -299,6 +299,12 @@ export const doctorAPI = {
     return response.data;
   },
 
+  // Explicit presenty status update by username (PATCH /doctor/updateDoctorPresentyStatus/{username})
+  updateDoctorPresentyStatus: async (username: string, isPresent: boolean) => {
+    const response = await api.patch(`/doctor/updateDoctorPresentyStatus/${encodeURIComponent(username)}`, { isPresent });
+    return response.data as { success?: boolean; isPresent?: boolean };
+  },
+
   // Doctor updates own availability window (HH:mm strings)
   updateAvailability: async (availableTimeFrom: string, availableTimeTo: string) => {
     const response = await api.patch(`/doctor/updateAvailability`, { availableTimeFrom, availableTimeTo });

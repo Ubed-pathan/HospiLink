@@ -141,6 +141,7 @@ export default function AdminUsersPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-600 border-b">
+                <th className="py-2 px-3 w-[60px]">Sr No</th>
                 <th className="py-2 px-3">Name</th>
                 <th className="py-2 px-3">Email</th>
                 <th className="py-2 px-3">Phone</th>
@@ -149,8 +150,9 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => (
+              {filtered.map((u, idx) => (
         <tr key={u.id} className="border-b last:border-0 hover:bg-blue-50/40">
+                  <td className="py-2 px-3 w-[60px] text-gray-700">{idx + 1}</td>
                   <td className="py-2 px-3 text-gray-900">{u.name}</td>
                   <td className="py-2 px-3 text-gray-900">{u.email}</td>
                   <td className="py-2 px-3 text-gray-900">{u.phone || u.contactNumber || '-'}</td>
@@ -165,7 +167,7 @@ export default function AdminUsersPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">No users found.</td>
+                  <td colSpan={6} className="py-6 text-center text-gray-500">No users found.</td>
                 </tr>
               )}
             </tbody>
