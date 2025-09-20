@@ -16,7 +16,6 @@ import {
   Settings,
   Plus,
   Pill,
-  Download,
   Activity,
   Trash2,
 } from 'lucide-react';
@@ -636,32 +635,15 @@ export default function PortalPage() {
       </div>
       
       <div className="p-6">
-        <div className="space-y-4">
-          {[
-            { date: '2024-01-15', type: 'Lab Results', doctor: 'Dr. Sarah Johnson', status: 'Ready' },
-            { date: '2024-01-10', type: 'Prescription', doctor: 'Dr. Michael Chen', status: 'Active' },
-            { date: '2024-01-05', type: 'X-Ray Report', doctor: 'Dr. Emily Rodriguez', status: 'Ready' }
-          ].map((record, index) => (
-            <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">{record.type}</h3>
-                  <p className="text-sm text-gray-600">{record.doctor} • {record.date}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                  {record.status}
-                </span>
-                <button className="text-blue-600 hover:text-blue-700">
-                  <Download className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="py-10 text-center">
+          <FileText className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 flex items-center justify-center gap-2">
+            Medical Records
+            <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">Coming Soon</span>
+          </h3>
+          <p className="text-gray-500 mt-2 max-w-md mx-auto text-sm">
+            You will be able to view, download, and manage lab results, prescriptions, and reports here once this feature is live.
+          </p>
         </div>
       </div>
     </div>
