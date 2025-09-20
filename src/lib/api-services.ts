@@ -216,6 +216,8 @@ export const doctorAPI = {
         reviewCount: d.reviewCount ?? 0,
   location: d.hospitalName || d.city || d.doctorAddress,
         availableSlots: toSlots(d.availableTimeFrom, d.availableTimeTo),
+        // Map realtime presence to both isPresent (new field) and legacy isAvailable for backward compatibility
+        isPresent: typeof d.isPresent === 'boolean' ? d.isPresent : undefined,
         isAvailable: d.isPresent,
         createdAt: d.createdAt,
         updatedAt: d.lastModified,

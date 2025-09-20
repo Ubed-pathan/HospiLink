@@ -70,7 +70,9 @@ export default function DoctorsPage() {
     });
   }, [searchTerm, selectedDepartment, doctors, departments]);
 
-  const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
+  const DoctorCard = ({ doctor }: { doctor: Doctor & { isAvailable?: boolean } }) => {
+  // Fallback: legacy field isAvailable implies presence if isPresent not provided
+  const effectivePresent = typeof doctor.isPresent === 'boolean' ? doctor.isPresent : doctor.isAvailable;
   const department = departments.find((d: Department) => d.id === doctor.departmentId);
     const synth = (() => {
       // Generate deterministic pseudo-random rating/reviews based on id
@@ -89,9 +91,11 @@ export default function DoctorsPage() {
             <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 text-lg md:text-xl font-bold">
               {doctor.name.split(' ').map((n: string) => n[0]).join('')}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-white rounded-full"></div>
-            </div>
+            {typeof effectivePresent === 'boolean' && (
+              <div className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full border-2 border-white flex items-center justify-center ${effectivePresent ? 'bg-green-500' : 'bg-red-500'}`}>
+                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${effectivePresent ? 'bg-white' : 'bg-white/80'}`}></div>
+              </div>
+            )}
           </div>
           
           <div className="flex-1 text-center sm:text-left">
@@ -139,6 +143,12 @@ export default function DoctorsPage() {
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span className="text-xs md:text-sm">{doctor.experience} yrs experience</span>
               </div>
+              {typeof effectivePresent === 'boolean' && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium border ${effectivePresent ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}> 
+                  <span className={`w-1.5 h-1.5 rounded-full ${effectivePresent ? 'bg-green-500' : 'bg-red-500'}`} />
+                  {effectivePresent ? 'Present' : 'Absent'}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center justify-center sm:justify-start gap-2 text-gray-600 mb-4 md:mb-6">
@@ -163,14 +173,34 @@ export default function DoctorsPage() {
               >
                 View Profile
               </Link>
-              <Link
-                href={`/appointment?doctor=${doctor.id}`}
-                className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-md text-center font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
-              >
-                <Calendar className="w-4 h-4" />
-                Book Appointment
-              </Link>
+              {effectivePresent ? (
+                <Link
+                  href={`/appointment?doctor=${doctor.id}`}
+                  className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-md text-center font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Appointment
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-2 px-3 md:px-4 rounded-md text-center font-medium flex items-center justify-center gap-2 text-sm md:text-base border border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                  title="Doctor is currently absent"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Unavailable
+                </button>
+              )}
             </div>
+            {typeof effectivePresent === 'boolean' && !effectivePresent && (
+              <div className="mt-3 flex items-center justify-center sm:justify-start">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  Currently Absent
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

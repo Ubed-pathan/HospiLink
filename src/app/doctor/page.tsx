@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import MiniBarChart from '@/components/charts/MiniBarChart';
 import DonutChart from '@/components/charts/DonutChart';
-import { appointmentAPI, doctorAPI, reviewAPI } from '@/lib/api-services';
+import { appointmentAPI, doctorAPI } from '@/lib/api-services';
 
 type DoctorAppt = import('@/lib/types').DoctorAppointmentDto;
 type Doctor = import('@/lib/types').Doctor;
@@ -100,71 +100,30 @@ export default function DoctorHome() {
           // We don't set avgRating from doctor profile anymore; prefer live review aggregation below
         } catch {}
 
-        // Reviews: compute average and pending = completed appts without reviews.
-        // Fallback: if direct reviews API returns 0, derive from embedded appointment feedbacks.
-        if (myId) {
-          try {
-            const reviews = await reviewAPI.getDoctorReviews(myId);
-            type ReviewLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
-            const extractRating = (r: ReviewLike): number | null => {
-              const raw = r?.rating ?? r?.Rating ?? r?.stars ?? r?.score;
-              if (typeof raw === 'number' && !isNaN(raw)) return raw;
-              if (typeof raw === 'string') {
-                const cleaned = raw.trim();
-                const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
-                const num = parseFloat(part);
-                if (!isNaN(num)) return num;
-              }
-              return null;
-            };
-            let validRatings: number[] = Array.isArray(reviews) ? reviews.map(extractRating).filter((n): n is number => n !== null && n >= 0) : [];
-            // Fallback to embedded feedbacks in appointments if none from API
-            if (!validRatings.length) {
-              const embedded = doctorAppts.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
-              type EmbeddedLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
-              const embeddedRatings = embedded.map((f: EmbeddedLike) => extractRating(f)).filter((n): n is number => n !== null && !isNaN(n) && n >= 0);
-              validRatings = embeddedRatings;
-            }
-            if (!cancelled) setReviewCount(validRatings.length);
-            if (validRatings.length) {
-              const sum = validRatings.reduce((acc, n) => acc + n, 0);
-              const avg = sum / validRatings.length;
-              if (!cancelled) setAvgRating(avg);
-            } else if (!cancelled) {
-              setAvgRating(0);
-            }
-            const completed = doctorAppts.filter((a) => {
-              const s = (a.appointmentStatus || '').toString().toLowerCase();
-              return s === 'completed' || s === 'confirmed';
-            }).length;
-            const pending = Math.max(0, completed - validRatings.length);
-            if (!cancelled) setPendingReviews(pending);
-          } catch {
-            // On error fallback to embedded feedbacks entirely
-            const embedded = doctorAppts.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
-            type FallbackLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
-            const extractFallback = (f: FallbackLike): number | null => {
-              const raw = f?.rating ?? f?.Rating ?? f?.stars ?? f?.score;
-              if (typeof raw === 'number' && !isNaN(raw)) return raw;
-              if (typeof raw === 'string') {
-                const cleaned = raw.trim();
-                const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
-                const num = parseFloat(part);
-                if (!isNaN(num)) return num;
-              }
-              return null;
-            };
-            const ratings = embedded.map(extractFallback).filter((n): n is number => n !== null && n >= 0);
-            if (!cancelled) {
-              setReviewCount(ratings.length);
-              setAvgRating(ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 0);
-              const completed = doctorAppts.filter((a) => {
-                const s = (a.appointmentStatus || '').toString().toLowerCase();
-                return s === 'completed' || s === 'confirmed';
-              }).length;
-              setPendingReviews(Math.max(0, completed - ratings.length));
-            }
+        // Compute ratings ONLY from embedded feedbacks (no external reviews endpoint)
+        const embedded = doctorAppts.flatMap((a) => Array.isArray(a.feedbacks) ? a.feedbacks : []);
+        type FeedbackLike = { rating?: unknown; Rating?: unknown; stars?: unknown; score?: unknown };
+        const extractRating = (f: FeedbackLike): number | null => {
+          const raw = f?.rating ?? f?.Rating ?? f?.stars ?? f?.score;
+          if (typeof raw === 'number' && !isNaN(raw)) return raw;
+          if (typeof raw === 'string') {
+            const cleaned = raw.trim();
+            const part = cleaned.includes('/') ? cleaned.split('/')[0] : cleaned;
+            const num = parseFloat(part);
+            if (!isNaN(num)) return num;
           }
+          return null;
+        };
+        const ratings = embedded.map(extractRating).filter((n): n is number => n !== null && n >= 0);
+        if (!cancelled) {
+          setReviewCount(ratings.length);
+          setAvgRating(ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 0);
+          const completed = doctorAppts.filter((a) => {
+            const s = (a.appointmentStatus || '').toString().toLowerCase();
+            return s === 'completed' || s === 'confirmed';
+          }).length;
+          const pending = Math.max(0, completed - ratings.length);
+          setPendingReviews(pending);
         }
       } catch (e) {
         const err = e as { message?: string } | undefined;

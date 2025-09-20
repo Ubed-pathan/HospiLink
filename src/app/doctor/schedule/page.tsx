@@ -13,6 +13,8 @@ export default function DoctorSchedulePage() {
   const [isPresent, setIsPresent] = React.useState<boolean>(true);
   const [from, setFrom] = React.useState<string>('09:00');
   const [to, setTo] = React.useState<string>('17:00');
+  const [presenceSaving, setPresenceSaving] = React.useState(false);
+  const [presenceError, setPresenceError] = React.useState<string | null>(null);
   
 
   // Load doctor id/username from global auth (loadOnRefresh)
@@ -102,14 +104,33 @@ export default function DoctorSchedulePage() {
           </div>
           <button
             type="button"
-            onClick={() => setIsPresent((v) => !v)}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${isPresent ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}
+            disabled={presenceSaving || !doctorUsername}
+            onClick={async () => {
+              if (!doctorUsername) return;
+              const next = !isPresent;
+              setPresenceSaving(true);
+              setPresenceError(null);
+              setIsPresent(next); // optimistic
+              try {
+                await doctorAPI.updateDoctorPresentyStatus(doctorUsername, next);
+              } catch (e) {
+                setIsPresent(!next); // revert
+                const msg = (e as { message?: string })?.message || 'Failed to update presence';
+                setPresenceError(msg);
+              } finally {
+                setPresenceSaving(false);
+              }
+            }}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition ${isPresent ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'} ${presenceSaving ? 'opacity-60 cursor-wait' : ''}`}
             aria-pressed={isPresent}
           >
-            {isPresent ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-            {isPresent ? 'Mark Absent' : 'Mark Present'}
+            {presenceSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isPresent ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />)}
+            {presenceSaving ? 'Updating…' : (isPresent ? 'Mark Absent' : 'Mark Present')}
           </button>
         </div>
+        {presenceError && (
+          <div className="mt-2 text-xs text-red-600" role="alert">{presenceError}</div>
+        )}
 
         {/* Divider */}
         <div className="my-6 h-px bg-gray-100" />

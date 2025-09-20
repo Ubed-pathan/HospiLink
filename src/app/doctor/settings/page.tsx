@@ -303,28 +303,28 @@ export default function DoctorSettingsPage() {
       </section>
 
       {/* Account details */}
-      <section className="bg-white/80 backdrop-blur border border-gray-200/60 shadow-sm rounded-xl p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
+      <section className="rounded-xl p-4 md:p-6 shadow-sm border border-[#24425D]/40 bg-gradient-to-br from-[#0E1F2F] via-[#24425D] to-[#8747D0] text-white">
+        <h3 className="text-base md:text-lg font-semibold mb-4 tracking-tight">Account Details</h3>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          <KV label="Full name" value={fullName || '-'} />
-          <KV label="Email" value={me?.email || '-'} />
-          <KV label="Username" value={displayUsername || '-'} />
-          <KV label="Roles" value={rolesText || '-'} />
-          <KV label="Phone" value={me?.phoneNumber || '-'} />
-          <KV label="Gender" value={(me?.gender ?? '-') as string} />
-          <KV label="Age" value={(me?.age ?? '-') as unknown as string} />
+          <KV invert label="Full name" value={fullName || '-'} />
+          <KV invert label="Email" value={me?.email || '-'} />
+          <KV invert label="Username" value={displayUsername || '-'} />
+          <KV invert label="Roles" value={rolesText || '-'} />
+            <KV invert label="Phone" value={me?.phoneNumber || '-'} />
+          <KV invert label="Gender" value={(me?.gender ?? '-') as string} />
+          <KV invert label="Age" value={(me?.age ?? '-') as unknown as string} />
           <div className="sm:col-span-2">
-            <KV label="Address" value={me?.address || '-'} />
+            <KV invert label="Address" value={me?.address || '-'} />
           </div>
-          <KV label="City" value={me?.city || '-'} />
-          <KV label="State" value={me?.state || '-'} />
-          <KV label="Country" value={me?.country || '-'} />
-          <KV label="ZIP code" value={me?.zipCode || '-'} />
+          <KV invert label="City" value={me?.city || '-'} />
+          <KV invert label="State" value={me?.state || '-'} />
+          <KV invert label="Country" value={me?.country || '-'} />
+          <KV invert label="ZIP code" value={me?.zipCode || '-'} />
         </dl>
       </section>
 
-      {/* Doctor Profile Card (restored) */}
-      <section className="bg-white/80 backdrop-blur border border-gray-200/60 shadow-sm rounded-xl p-4 md:p-6">
+      {/* Doctor Profile Card (restyled) */}
+      <section className="rounded-xl p-4 md:p-6 shadow-sm border border-[#24425D]/40 bg-white">
         <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Doctor Profile</h3>
         {!doctor ? (
           <p className="text-sm text-gray-600">Doctor details not available.</p>
@@ -615,11 +615,13 @@ export default function DoctorSettingsPage() {
   );
 }
 
-function KV({ label, value }: { label: string; value?: string | number | null }) {
+function KV({ label, value, invert }: { label: string; value?: string | number | null; invert?: boolean }) {
+  const labelCls = invert ? 'text-xs font-medium text-white/70' : 'text-xs font-medium text-gray-500';
+  const valCls = invert ? 'mt-1 text-sm text-white break-words' : 'mt-1 text-sm text-gray-900 break-words';
   return (
     <div className="flex flex-col">
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="mt-1 text-sm text-gray-900 break-words">{(value ?? '') !== '' ? value : '-'}</dd>
+      <dt className={labelCls}>{label}</dt>
+      <dd className={valCls}>{(value ?? '') !== '' ? value : '-'}</dd>
     </div>
   );
 }

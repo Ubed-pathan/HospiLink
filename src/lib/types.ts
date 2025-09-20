@@ -50,6 +50,7 @@ export interface Doctor {
   image?: string;
   profileImage?: string;
   isAvailable?: boolean;
+  isPresent?: boolean; // realtime presence flag
   createdAt?: string;
   updatedAt?: string;
 }
