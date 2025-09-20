@@ -103,11 +103,13 @@ export default function PortalPage() {
   const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(false);
   // Feedback modal state
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackFor, setFeedbackFor] = useState<{ appointmentId: string; doctorId: string; doctorName: string } | null>(null);
+  const [feedbackFor, setFeedbackFor] = useState<{ appointmentId: string; doctorId: string; doctorName: string; feedbackId?: string | null } | null>(null);
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
   const [feedbackReview, setFeedbackReview] = useState<string>('');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [feedbackSaving, setFeedbackSaving] = useState<boolean>(false);
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
+  const [confirmDeleteFeedbackId, setConfirmDeleteFeedbackId] = useState<string | null>(null);
   const parseDateTime = (dt: string | undefined): { date: string; time: string } => {
     if (!dt) return { date: '', time: '' };
     const normalized = dt.replace(' ', 'T');
@@ -510,6 +512,8 @@ export default function PortalPage() {
               const isCompleted = String(a.appointmentStatus).toLowerCase() === 'completed';
               const canGiveFeedback = isCompleted && a.didUserGiveFeedback !== true;
               const canEditFeedback = isCompleted && a.didUserGiveFeedback === true;
+              const existingFeedback = Array.isArray(a.feedbacks) && a.feedbacks.length > 0 ? a.feedbacks[0] : null;
+              const feedbackId = existingFeedback?.feedbackId;
               return (
                 <div key={a.appointmentId} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
@@ -534,7 +538,7 @@ export default function PortalPage() {
                         <button
                           className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-medium hover:bg-blue-700"
                           onClick={() => {
-                            setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName });
+                            setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName, feedbackId: undefined });
                             setFeedbackRating(5);
                             setFeedbackReview('');
                             setFeedbackMsg(null);
@@ -544,19 +548,65 @@ export default function PortalPage() {
                           Give Feedback
                         </button>
                       ) : canEditFeedback ? (
-                        <button
-                          className="px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs font-medium hover:bg-purple-700"
-                          onClick={() => {
-                            const fb = Array.isArray(a.feedbacks) && a.feedbacks.length > 0 ? a.feedbacks[0] : null;
-                            setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName });
-                            setFeedbackRating(fb?.rating ?? 5);
-                            setFeedbackReview(fb?.review ?? '');
-                            setFeedbackMsg(null);
-                            setFeedbackOpen(true);
-                          }}
-                        >
-                          Edit Feedback
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs font-medium hover:bg-purple-700"
+                            onClick={() => {
+                              const fb = existingFeedback;
+                              // Support alternate backend casing (FeedbackId, feedbackID, etc.)
+                              const anyFb = fb as unknown as Record<string, unknown> | null;
+                              const variantId = (anyFb && (anyFb['feedbackId'] || anyFb['FeedbackId'] || anyFb['feedbackID'] || anyFb['FeedbackID'])) as string | undefined;
+                              setFeedbackFor({ appointmentId: a.appointmentId, doctorId: a.doctorId, doctorName: docName, feedbackId: fb?.feedbackId || variantId || null });
+                              setFeedbackRating(fb?.rating ?? 5);
+                              setFeedbackReview(fb?.review ?? '');
+                              setFeedbackMsg(null);
+                              setFeedbackOpen(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          {!!feedbackId && (
+                            confirmDeleteFeedbackId === feedbackId ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  className="px-2 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium hover:bg-red-700 disabled:opacity-60"
+                                  disabled={deletingFeedbackId === feedbackId}
+                                  onClick={async () => {
+                                    try {
+                                      setDeletingFeedbackId(feedbackId);
+                                      await appointmentAPI.deleteFeedback(feedbackId);
+                                      // update local state: remove feedback + reset flags
+                                      setMyAppointments((prev) => (prev || []).map(x => x.appointmentId === a.appointmentId ? { ...x, didUserGiveFeedback: false, feedbacks: [] } : x));
+                                    } catch (e) {
+                                      const err = e as { response?: { data?: { message?: string } }; message?: string };
+                                      alert(err?.response?.data?.message || err?.message || 'Failed to delete feedback');
+                                    } finally {
+                                      setDeletingFeedbackId(null);
+                                      setConfirmDeleteFeedbackId(null);
+                                    }
+                                  }}
+                                >
+                                  {deletingFeedbackId === feedbackId ? 'Deleting…' : 'Confirm'}
+                                </button>
+                                <button
+                                  className="px-2 py-1.5 rounded-md border border-gray-300 text-gray-600 text-xs font-medium hover:bg-gray-50"
+                                  disabled={deletingFeedbackId === feedbackId}
+                                  onClick={() => setConfirmDeleteFeedbackId(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="px-3 py-1.5 rounded-md border border-red-300 text-red-700 text-xs font-medium hover:bg-red-50 disabled:opacity-60"
+                                disabled={deletingFeedbackId === feedbackId}
+                                onClick={() => setConfirmDeleteFeedbackId(feedbackId)}
+                              >
+                                Delete
+                              </button>
+                            )
+                          )}
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -840,12 +890,61 @@ export default function PortalPage() {
             )}
           </div>
           <ModalFooter>
-            <button
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-              onClick={() => setFeedbackOpen(false)}
-            >
-              Cancel
-            </button>
+            <div className="flex-1 flex items-center gap-3">
+              <button
+                className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={() => setFeedbackOpen(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+              {feedbackFor?.feedbackId && (
+                confirmDeleteFeedbackId === feedbackFor.feedbackId ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-60"
+                      disabled={deletingFeedbackId === feedbackFor.feedbackId}
+                      onClick={async () => {
+                        if (!feedbackFor.feedbackId) return;
+                        try {
+                          setDeletingFeedbackId(feedbackFor.feedbackId);
+                          await appointmentAPI.deleteFeedback(feedbackFor.feedbackId);
+                          // Update local state: clear feedback for that appointment
+                          setMyAppointments((prev) => (prev || []).map(x => x.appointmentId === feedbackFor.appointmentId ? { ...x, didUserGiveFeedback: false, feedbacks: [] } : x));
+                          setFeedbackOpen(false);
+                        } catch (e) {
+                          const err = e as { response?: { data?: { message?: string } }; message?: string };
+                          setFeedbackMsg(err?.response?.data?.message || err?.message || 'Failed to delete feedback');
+                        } finally {
+                          setDeletingFeedbackId(null);
+                          setConfirmDeleteFeedbackId(null);
+                        }
+                      }}
+                    >
+                      {deletingFeedbackId === feedbackFor.feedbackId ? 'Deleting…' : 'Confirm Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-md border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50"
+                      disabled={deletingFeedbackId === feedbackFor.feedbackId}
+                      onClick={() => setConfirmDeleteFeedbackId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-md border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-60"
+                    disabled={deletingFeedbackId === feedbackFor.feedbackId}
+                    onClick={() => setConfirmDeleteFeedbackId(feedbackFor.feedbackId || null)}
+                  >
+                    Delete Feedback
+                  </button>
+                )
+              )}
+            </div>
             <button
               className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
               disabled={feedbackSaving}

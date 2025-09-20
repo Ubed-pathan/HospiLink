@@ -503,6 +503,11 @@ export const appointmentAPI = {
     const response = await api.get(`/appointments/${id}`);
     return response.data;
   },
+  // Patient deletes their own feedback by feedbackId
+  deleteFeedback: async (feedbackId: string) => {
+    const response = await api.delete(`/appointment/deleteFeedback/${feedbackId}`);
+    return response.data;
+  },
 
   // Book appointment
   bookAppointment: async (appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> => {
@@ -558,6 +563,9 @@ export const appointmentAPI = {
         ? a.feedbacks.map((f) => {
             type RawFeedback = {
               feedbackId?: string | number;
+              FeedbackId?: string | number;
+              feedbackID?: string | number;
+              FeedbackID?: string | number;
               appointmentId: string | number;
               doctorId: string | number;
               review?: string | null;
@@ -565,8 +573,10 @@ export const appointmentAPI = {
               rating?: number | null;
             };
             const rf = f as unknown as RawFeedback;
+            const anyObj = rf as Record<string, unknown>;
+            const fbIdVariant = anyObj['feedbackId'] || anyObj['FeedbackId'] || anyObj['feedbackID'] || anyObj['FeedbackID'];
             return {
-              feedbackId: rf.feedbackId ? String(rf.feedbackId) : undefined,
+              feedbackId: typeof fbIdVariant === 'string' || typeof fbIdVariant === 'number' ? String(fbIdVariant) : undefined,
               appointmentId: String(rf.appointmentId),
               doctorId: String(rf.doctorId),
               review: rf.review ? String(rf.review) : rf.Feedback ? String(rf.Feedback) : '',
@@ -612,6 +622,9 @@ export const appointmentAPI = {
         ? a.feedbacks.map((f) => {
             type RawFeedback = {
               feedbackId?: string | number;
+              FeedbackId?: string | number;
+              feedbackID?: string | number;
+              FeedbackID?: string | number;
               appointmentId: string | number;
               doctorId: string | number;
               review?: string | null;
@@ -619,8 +632,10 @@ export const appointmentAPI = {
               rating?: number | null;
             };
             const rf = f as unknown as RawFeedback;
+            const anyObj = rf as Record<string, unknown>;
+            const fbIdVariant = anyObj['feedbackId'] || anyObj['FeedbackId'] || anyObj['feedbackID'] || anyObj['FeedbackID'];
             return {
-              feedbackId: rf.feedbackId ? String(rf.feedbackId) : undefined,
+              feedbackId: typeof fbIdVariant === 'string' || typeof fbIdVariant === 'number' ? String(fbIdVariant) : undefined,
               appointmentId: String(rf.appointmentId),
               doctorId: String(rf.doctorId),
               review: rf.review ? String(rf.review) : rf.Feedback ? String(rf.Feedback) : '',
@@ -783,16 +798,21 @@ export const adminReviewAPI = {
     };
   const response = await api.get<BackendAdminFeedback[]>(`/appointment/getFeedbacksForAdmin/${doctorId}`);
     const arr = Array.isArray(response.data) ? response.data : [];
-    return arr.map((f) => ({
-      appointmentId: String(f.appointmentId),
-      appointmentTime: String(f.appointmentTime),
-      userFullName: String(f.userFullName || ''),
-      userEmail: String(f.userEmail || ''),
-      doctorFullName: String(f.doctorFullName || ''),
-      rating: typeof f.rating === 'number' ? f.rating : 0,
-      review: f.review ? String(f.review) : f.Feedback ? String(f.Feedback) : '',
-      feedbackId: f.feedbackId ? String(f.feedbackId) : undefined,
-    }));
+    return arr.map((f) => {
+      // Some backends might vary casing: feedbackID, FeedbackId, etc.
+      const anyObj = f as Record<string, unknown>;
+      const possibleId = anyObj['feedbackId'] || anyObj['feedbackID'] || anyObj['FeedbackId'] || anyObj['FeedbackID'];
+      return {
+        appointmentId: String(f.appointmentId),
+        appointmentTime: String(f.appointmentTime),
+        userFullName: String(f.userFullName || ''),
+        userEmail: String(f.userEmail || ''),
+        doctorFullName: String(f.doctorFullName || ''),
+        rating: typeof f.rating === 'number' ? f.rating : 0,
+        review: f.review ? String(f.review) : f.Feedback ? String(f.Feedback) : '',
+        feedbackId: typeof possibleId === 'string' || typeof possibleId === 'number' ? String(possibleId) : undefined,
+      };
+    });
   },
   // Delete a feedback by appointmentId (assumption based on 1:1 feedback per appointment)
   deleteFeedback: async (feedbackId: string) => {

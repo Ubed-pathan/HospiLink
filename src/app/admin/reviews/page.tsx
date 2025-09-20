@@ -13,7 +13,6 @@ export default function AdminReviewsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
-
   React.useEffect(() => {
     let active = true;
     (async () => {
@@ -171,15 +170,15 @@ export default function AdminReviewsPage() {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-sm text-gray-700">⭐ {rev.rating}</div>
-                            {!!rev.feedbackId && (
-                              confirmDeleteId === rev.feedbackId ? (
+                            {(rev.feedbackId || rev.appointmentId) && (
+                              confirmDeleteId === (rev.feedbackId || rev.appointmentId) ? (
                                 <div className="flex items-center gap-2">
                                   <button
                                     className="text-xs px-2 py-1 rounded border border-red-500 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-                                    disabled={deletingId === rev.feedbackId}
+                                    disabled={deletingId === rev.feedbackId || !rev.feedbackId}
                                     onClick={async () => {
+                                      if (!rev.feedbackId) return; // cannot delete without real id
                                       try {
-                                        if (!rev.feedbackId) return;
                                         setDeletingId(rev.feedbackId);
                                         await adminReviewAPI.deleteFeedback(rev.feedbackId);
                                         setFeedbacks((prev) => (prev || []).filter((f) => f.feedbackId !== rev.feedbackId));
@@ -192,7 +191,7 @@ export default function AdminReviewsPage() {
                                       }
                                     }}
                                   >
-                                    {deletingId === rev.feedbackId ? 'Deleting…' : 'Confirm'}
+                                    {deletingId === rev.feedbackId ? 'Deleting…' : rev.feedbackId ? 'Confirm' : 'No ID'}
                                   </button>
                                   <button
                                     className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -205,8 +204,9 @@ export default function AdminReviewsPage() {
                               ) : (
                                 <button
                                   className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
-                                  disabled={deletingId === rev.feedbackId}
-                                  onClick={() => setConfirmDeleteId(rev.feedbackId || null)}
+                                  disabled={deletingId === rev.feedbackId || !rev.feedbackId}
+                                  onClick={() => setConfirmDeleteId(rev.feedbackId || rev.appointmentId || null)}
+                                  title={!rev.feedbackId ? 'Feedback ID missing from backend; cannot delete.' : 'Delete review'}
                                 >
                                   Delete
                                 </button>
