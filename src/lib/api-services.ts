@@ -74,8 +74,39 @@ export const authAPI = {
 
   // Complete registration (accepts backend UserRegistrationDto shape)
   completeRegistration: async (userData: Record<string, unknown>) => {
-    const response = await api.post('/user/register', userData);
-    return response.data;
+    try {
+      const response = await api.post('/user/register', userData);
+      return response.data;
+    } catch (err: unknown) {
+      // Normalize backend error message so UI can surface it directly (e.g., "Username already exists")
+      const maybeAxios = err as {
+        response?: { data?: unknown; status?: number };
+        message?: string;
+      };
+      if (maybeAxios?.response) {
+        const data = maybeAxios.response.data as unknown;
+        let message: string | undefined;
+        if (typeof data === 'string') {
+          message = data.trim();
+        } else if (data && typeof data === 'object') {
+          const obj = data as Record<string, unknown>;
+          message = (['message','error','detail','status']
+            .map(k => (typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined))
+            .find(Boolean)) || undefined;
+        }
+        // Fallback to generic based on status if no explicit message field
+        if (!message) {
+          const status = maybeAxios.response.status;
+            if (status === 409) message = 'Conflict: resource already exists.';
+          else if (status === 400) message = 'Invalid data supplied.';
+          else if (status === 500) message = 'Server error while creating account.';
+        }
+        const normalized = (message || maybeAxios.message || 'Registration failed').replace(/^["']|["']$/g, '');
+        throw new Error(normalized);
+      }
+      // Non-HTTP (network) error
+      throw new Error('Unable to reach server. Please try again.');
+    }
   },
 
   // Regular signin (backend expects LoginDto { username, password })

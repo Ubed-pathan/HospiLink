@@ -170,7 +170,12 @@ export default function SignUpPage() {
       }, 1200);
     } catch (error) {
       console.error('Registration Error:', error);
-  setError(`Failed to create account. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
+      const msg = (error as Error)?.message?.trim();
+      if (msg) {
+        setError(msg);
+      } else {
+        setError(`Failed to create account. Please check if backend server is running on ${process.env.NEXT_PUBLIC_API_URL || 'configured API URL'}`);
+      }
     } finally {
       setIsLoading(false);
     }
