@@ -138,27 +138,27 @@ export default function GoogleOnboardingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <input value={form.username} onChange={e=>update('username', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Choose a username" />
+              <input value={form.username} onChange={e=>update('username', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" placeholder="Choose a username" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-              <input value={form.firstName} onChange={e=>update('firstName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.firstName} onChange={e=>update('firstName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input value={form.lastName} onChange={e=>update('lastName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.lastName} onChange={e=>update('lastName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name (optional)</label>
-              <input value={form.middleName} onChange={e=>update('middleName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.middleName} onChange={e=>update('middleName', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-              <input value={form.age} onChange={e=>update('age', e.target.value.replace(/[^0-9]/g,''))} placeholder="" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.age} onChange={e=>update('age', e.target.value.replace(/[^0-9]/g,''))} placeholder="" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-              <select value={form.gender} onChange={e=>update('gender', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <select value={form.gender} onChange={e=>update('gender', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900">
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -167,27 +167,27 @@ export default function GoogleOnboardingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone (10 digits)</label>
-              <input value={form.phoneNumber} onChange={e=>update('phoneNumber', e.target.value.replace(/[^0-9]/g,'').slice(0,10))} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.phoneNumber} onChange={e=>update('phoneNumber', e.target.value.replace(/[^0-9]/g,'').slice(0,10))} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-              <input value={form.address} onChange={e=>update('address', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.address} onChange={e=>update('address', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-              <input value={form.city} onChange={e=>update('city', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.city} onChange={e=>update('city', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-              <input value={form.state} onChange={e=>update('state', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.state} onChange={e=>update('state', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <input value={form.country} onChange={e=>update('country', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.country} onChange={e=>update('country', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
-              <input value={form.zipCode} onChange={e=>update('zipCode', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input value={form.zipCode} onChange={e=>update('zipCode', e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400" />
             </div>
           </div>
           <div className="flex items-center justify-between">
