@@ -33,8 +33,19 @@ export const authAPI = {
 
   // Complete onboarding after Google sign-in
   completeOnboarding: async (payload: Record<string, unknown>) => {
-    const response = await api.post('/auth/onboarding', payload, { withCredentials: true });
-    return response.data as unknown; // expected UserDto
+    // Primary endpoint we've integrated against is /auth/onboarding. Some backends may prefix with /user.
+    try {
+      const response = await api.post('/auth/onboarding', payload, { withCredentials: true });
+      return response.data as unknown; // expected UserDto
+    } catch (errPrimary) {
+      try {
+        const responseFallback = await api.post('/user/auth/onboarding', payload, { withCredentials: true });
+        return responseFallback.data as unknown;
+      } catch (errFallback) {
+        // Re-throw original primary error if fallback also fails to preserve first failure context
+        throw errFallback || errPrimary;
+      }
+    }
   },
 
   // Send OTP for registration

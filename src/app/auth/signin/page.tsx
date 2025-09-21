@@ -173,9 +173,22 @@ export default function SignInPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Google OAuth Button */}
+                {/* Google OAuth Button (enhanced styling wrapper, keeps native functionality) */}
                 <div className="w-full">
-                  <GoogleButton /* switched to native render variant to avoid prompt timing issues */ onError={(m: string)=> setError(m)} />
+                  <div className="group relative">
+                    <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-blue-500/20 via-blue-400/10 to-purple-400/20 opacity-0 group-hover:opacity-100 blur transition duration-500" />
+                    <div className="relative rounded-2xl border border-gray-200 bg-white/90 backdrop-blur-sm px-4 py-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center gap-3">
+                      <GoogleButton
+                        onError={(m: string)=> setError(m)}
+                        /* tweak visual props on native button */
+                        size="large"
+                        text="continue_with"
+                        theme="outline"
+                        shape="pill"
+                        className=""/>
+                      <p className="text-[11px] text-gray-500 tracking-wide">Secure Google sign-in · 1-click access</p>
+                    </div>
+                  </div>
                   {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
                     <p className="mt-2 text-xs text-red-600">Google client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local.</p>
                   )}
