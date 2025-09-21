@@ -14,6 +14,28 @@ export const authAPI = {
     const response = await api.post('/auth/google-signin', { token: googleToken });
     return response.data;
   },
+  // New Google Login using backend /auth/google (returns UserDto or onboardingRequired)
+  googleLogin: async (idToken: string) => {
+    // Some backends expose /user/auth/google instead of /auth/google. Try primary then fallback.
+    try {
+      const response = await api.post('/auth/google', { idToken }, { withCredentials: true });
+      return response.data as unknown;
+  } catch {
+      // Fallback attempt
+      try {
+        const response2 = await api.post('/user/auth/google', { idToken }, { withCredentials: true });
+        return response2.data as unknown;
+      } catch (fallbackErr) {
+        throw fallbackErr; // surface failure after fallback
+      }
+    }
+  },
+
+  // Complete onboarding after Google sign-in
+  completeOnboarding: async (payload: Record<string, unknown>) => {
+    const response = await api.post('/auth/onboarding', payload, { withCredentials: true });
+    return response.data as unknown; // expected UserDto
+  },
 
   // Send OTP for registration
   sendOTP: async (email: string) => {
