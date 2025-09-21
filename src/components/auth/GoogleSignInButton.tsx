@@ -12,7 +12,7 @@ interface GoogleSignInButtonProps {
   labelFallback?: string; // fallback label if GIS script fails
   className?: string;
   onError?: (message: string) => void;
-  variant?: 'google' | 'custom'; // custom = styled like signup page
+  variant?: 'google' | 'custom' | 'decorated'; // custom = manual popup; decorated = native button inside styled shell
 }
 
 interface GoogleIdCredentialResponse { credential: string; select_by?: string }
@@ -101,7 +101,7 @@ export default function GoogleSignInButton({
         auto_select: false,
       });
 
-      if (variant === 'google' && divRef.current) {
+      if ((variant === 'google' || variant === 'decorated') && divRef.current) {
         window.google.accounts.id.renderButton(divRef.current, { theme, size, text, shape, width });
       }
     } catch {
@@ -171,6 +171,34 @@ export default function GoogleSignInButton({
     );
   }
 
+  // Decorated variant wraps native button for improved UI parity with signup
+  if (variant === 'decorated') {
+    return (
+      <div className={className}>
+        <div className="group relative">
+          <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-blue-500/20 via-blue-400/10 to-purple-400/20 opacity-0 group-hover:opacity-100 blur transition duration-500" />
+          <div className="relative rounded-2xl border border-gray-200 bg-white/90 backdrop-blur-sm px-4 py-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center gap-3">
+            <div ref={divRef} className={!ready ? 'opacity-50 pointer-events-none transition' : 'transition'} />
+            {loading && <div className="text-xs text-gray-500">Signing in…</div>}
+            {error && <div className="text-xs text-red-600">{error}</div>}
+            {!error && !clientId && <div className="text-xs text-red-600">Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID</div>}
+            {!ready && !error && (
+              <button
+                type="button"
+                disabled
+                className="w-full bg-white border border-gray-300 rounded-md py-2 text-sm text-gray-600 flex items-center justify-center"
+              >{labelFallback}</button>
+            )}
+            {!error && ready && clientId && (
+              <p className="text-[11px] text-gray-500 tracking-wide">Secure Google sign-in · 1-click access</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default native button
   return (
     <div className={className + ' space-y-2'}>
       <div ref={divRef} className={!ready ? 'opacity-50 pointer-events-none' : ''}></div>

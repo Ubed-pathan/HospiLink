@@ -224,8 +224,15 @@ export default function SignUpPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Google Sign Up */}
-        <GoogleSignInButton variant="custom" onError={setError} />
+        {/* Google Sign Up (decorated native variant for consistency with sign-in) */}
+        <GoogleSignInButton
+          variant="decorated"
+          size="large"
+          text="signup_with"
+          theme="outline"
+          shape="pill"
+          onError={setError}
+        />
         {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
           <p className="mt-2 text-xs text-red-600">Google client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local.</p>
         )}
