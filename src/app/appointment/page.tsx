@@ -516,16 +516,15 @@ function AppointmentPageInner() {
             await appointmentAPI.unifiedBookAppointment(payload);
             setCurrentStep('confirmation');
           } catch (e: unknown) {
-            let msg = e instanceof Error ? e.message : 'Failed to book appointment';
-            // Normalize common backend overlap / validation messages
-            if (/overlaps/i.test(msg)) {
-              msg = 'Requested time range overlaps an existing appointment. Please pick another slot.';
-            } else if (/already has an appointment/i.test(msg)) {
-              msg = 'You already have an appointment with this doctor today.';
-            } else if (/must be after start/i.test(msg)) {
-              msg = 'End time must be after start time.';
-            }
-            setBookError(msg);
+            const raw = e instanceof Error ? e.message : 'Failed to book appointment';
+            let display = raw;
+            const isOverlap = /overlaps/i.test(raw);
+            const isDuplicateDay = /already has an appointment/i.test(raw);
+            const isEndBefore = /must be after start/i.test(raw);
+            if (isDuplicateDay) display = 'You already have an appointment with this doctor today.';
+            if (isEndBefore) display = 'End time must be after start time.';
+            if (isOverlap && !/pick another slot/i.test(display)) display = raw + ' Please pick another slot.';
+            setBookError(display);
             try { document.getElementById('booking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
           } finally {
             setBooking(false);
@@ -546,9 +545,18 @@ function AppointmentPageInner() {
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
       {bookError ? (
-        <div id="booking-error" className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold max-w-md mx-auto" role="alert">
-          {bookError}
-        </div>
+        (() => {
+          const overlap = /overlaps/i.test(bookError || '');
+          const baseClasses = 'rounded-md px-4 py-2 text-sm font-semibold max-w-md mx-auto flex items-start gap-2';
+          const icon = overlap ? '⚠️' : '❌';
+          const colorClasses = overlap ? 'border border-amber-300 bg-amber-50 text-amber-800' : 'border border-red-200 bg-red-50 text-red-700';
+          return (
+            <div id="booking-error" className={`${baseClasses} ${colorClasses}`} role="alert">
+              <span aria-hidden="true">{icon}</span>
+              <span className="flex-1">{bookError}</span>
+            </div>
+          );
+        })()
       ) : (
         <>
           <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
