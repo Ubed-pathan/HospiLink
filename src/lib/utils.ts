@@ -227,6 +227,30 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
   }).format(amount);
 }
 
+// Validate appointment creation payload (mirrors backend constraints for AppointmentCreateDto)
+export function validateAppointmentCreate(payload: import('./types').AppointmentCreateDto): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/; // loose ISO local datetime check
+  if (!payload.appointmentStartTime || !isoRegex.test(payload.appointmentStartTime)) {
+    errors.push('Invalid or missing appointmentStartTime');
+  }
+  if (!payload.appointmentEndTime || !isoRegex.test(payload.appointmentEndTime)) {
+    errors.push('Invalid or missing appointmentEndTime');
+  }
+  if (payload.appointmentStartTime && payload.appointmentEndTime) {
+    const start = new Date(payload.appointmentStartTime.replace(' ', 'T'));
+    const end = new Date(payload.appointmentEndTime.replace(' ', 'T'));
+    if (start >= end) errors.push('End time must be after start time');
+  }
+  if (!payload.userId?.trim()) errors.push('userId is required');
+  if (!payload.usersFullName?.trim()) errors.push('Full name is required');
+  if (!payload.usersEmail?.trim()) errors.push('Email is required');
+  if (!payload.doctorId?.trim()) errors.push('doctorId is required');
+  if (!payload.reason?.trim()) errors.push('Reason is required');
+  else if (payload.reason.length > 250) errors.push('Reason cannot exceed 250 characters');
+  return { valid: errors.length === 0, errors };
+}
+
 /**
  * Sort array by property
  */

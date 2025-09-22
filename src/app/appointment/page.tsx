@@ -480,7 +480,21 @@ function AppointmentPageInner() {
               setBooking(false);
               return;
             }
-            const appointmentTime = `${formData.date}T${formData.time}:00`;
+            // Build start/end (assume fixed 30 minute duration for now) using local date math without UTC shift
+            const start = `${formData.date}T${formData.time}:00`;
+            const [hStr, mStr] = formData.time.split(':');
+            const h = Number(hStr); const m = Number(mStr);
+            const base = new Date(formData.date + 'T00:00:00');
+            base.setHours(h, m, 0, 0);
+            const endLocal = new Date(base.getTime() + 30 * 60000);
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const end = `${formData.date}T${pad(endLocal.getHours())}:${pad(endLocal.getMinutes())}:00`;
+            // Validate locally before sending
+            if (end <= start) {
+              setBookError('Calculated end time is not after start time. Please pick a different slot.');
+              setBooking(false);
+              return;
+            }
             const reason = reasonRaw.slice(0, 250);
             const usersFullName = (
               (user.fullName && user.fullName.trim()) ||
@@ -489,18 +503,30 @@ function AppointmentPageInner() {
               (userEmail.split('@')[0]) ||
               'Patient'
             );
-            await appointmentAPI.bookAppointmentV2({
-              appointmentTime,
+            const payload = {
+              appointmentStartTime: start,
+              appointmentEndTime: end,
               userId: String(user.id),
               usersFullName,
               usersEmail: userEmail,
               doctorId: selectedDoctor.id,
               reason,
-            });
+            };
+            console.log('Booking appointment payload:', payload);
+            await appointmentAPI.unifiedBookAppointment(payload);
             setCurrentStep('confirmation');
           } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Failed to book appointment';
+            let msg = e instanceof Error ? e.message : 'Failed to book appointment';
+            // Normalize common backend overlap / validation messages
+            if (/overlaps/i.test(msg)) {
+              msg = 'Requested time range overlaps an existing appointment. Please pick another slot.';
+            } else if (/already has an appointment/i.test(msg)) {
+              msg = 'You already have an appointment with this doctor today.';
+            } else if (/must be after start/i.test(msg)) {
+              msg = 'End time must be after start time.';
+            }
             setBookError(msg);
+            try { document.getElementById('booking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
           } finally {
             setBooking(false);
           }
@@ -520,7 +546,7 @@ function AppointmentPageInner() {
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
       {bookError ? (
-        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold max-w-md mx-auto" role="alert">
+        <div id="booking-error" className="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold max-w-md mx-auto" role="alert">
           {bookError}
         </div>
       ) : (

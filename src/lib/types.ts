@@ -1,6 +1,6 @@
 /**
  * TypeScript type definitions for the application
- */
+*/
 
 export interface User {
   id: string;
@@ -357,4 +357,17 @@ export interface AdminFeedbackDto {
   review: string; // prefer backend 'review'; fallback to 'Feedback' field
   feedbackId?: string; // unique feedback identifier
   // (Optional) rawFeedbackField?: string; // could add if backend keeps both
+}
+
+// Appointment creation DTO (mirrors Java record AppointmentDto)
+// Backend fields: appointmentStartTime, appointmentEndTime, userId, usersFullName, usersEmail, doctorId, reason
+// LocalDateTime serialized as ISO string (without or with zone depending on backend). We'll type as string.
+export interface AppointmentCreateDto {
+  appointmentStartTime: string; // ISO LocalDateTime string
+  appointmentEndTime: string;   // ISO LocalDateTime string
+  userId: string;
+  usersFullName: string;
+  usersEmail: string;
+  doctorId: string;
+  reason: string; // max 250 chars (validated server-side)
 }

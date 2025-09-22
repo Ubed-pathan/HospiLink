@@ -588,23 +588,96 @@ export const appointmentAPI = {
     return response.data;
   },
 
-  // Book appointment
-  bookAppointment: async (appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> => {
-    const response = await api.post('/appointments', appointmentData);
-    return response.data;
+  /**
+   * DEPRECATED: Legacy single timestamp booking methods have been removed in favor of start/end window DTO.
+   * Use unifiedBookAppointment below.
+   */
+
+  /**
+   * Unified booking: sends AppointmentCreateDto (start & end times) mirroring backend AppointmentDto record.
+   * Tries dedicated window route first, falls back to generic /appointment/book.
+   * @param payload AppointmentCreateDto
+   */
+  unifiedBookAppointment: async (payload: import('./types').AppointmentCreateDto) => {
+    // Basic client-side shape guard (optional redundancy if caller already validated)
+    const required = ['appointmentStartTime','appointmentEndTime','userId','usersFullName','usersEmail','doctorId','reason'] as const;
+    const payloadRecord = payload as unknown as Record<string, unknown>;
+    for (const key of required) {
+      if (!payloadRecord[key]) throw new Error(`Missing field: ${key}`);
+    }
+    // Direct booking to confirmed endpoint
+    try {
+      const response = await api.post('/appointment/book', payload);
+      return response.data;
+    } catch (err) {
+      const maybe = err as { response?: { data?: unknown; status?: number } };
+      if (maybe.response) {
+        const d = maybe.response.data as unknown;
+        let msg: string | undefined;
+        if (typeof d === 'string') msg = d.trim();
+        else if (d && typeof d === 'object') {
+          const obj = d as Record<string, unknown>;
+          msg = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
+        }
+        throw new Error(msg || 'Failed to book appointment');
+      }
+      throw err;
+    }
   },
 
-  // Book appointment using backend-provided DTO at /appointment/book
-  bookAppointmentV2: async (payload: {
-    appointmentTime: string; // ISO local datetime string e.g. 2025-09-04T10:30:00
-    userId: string;
-    usersFullName: string;
-    usersEmail: string;
-    doctorId: string;
-    reason: string;
-  }) => {
-    const response = await api.post('/appointment/book', payload);
-    return response.data;
+  /**
+   * Backward compatibility wrappers (deprecated). If older components still call these, they will map
+   * to the new unified method by converting single appointmentTime into a 30-minute window.
+   */
+  // @deprecated
+  bookAppointmentV2: async (payload: { appointmentTime: string; userId: string; usersFullName: string; usersEmail: string; doctorId: string; reason: string; }) => {
+    const start = payload.appointmentTime;
+    // Add 30 minutes default
+    const endDate = new Date(start);
+    if (!isNaN(endDate.getTime())) endDate.setMinutes(endDate.getMinutes() + 30);
+    const end = isNaN(endDate.getTime()) ? start : endDate.toISOString().slice(0,19);
+    return appointmentAPI.unifiedBookAppointment({
+      appointmentStartTime: start,
+      appointmentEndTime: end,
+      userId: payload.userId,
+      usersFullName: payload.usersFullName,
+      usersEmail: payload.usersEmail,
+      doctorId: payload.doctorId,
+      reason: payload.reason,
+    });
+  },
+  // @deprecated generic legacy method signature
+  bookAppointment: async (legacy: unknown) => {
+    type LegacyPayload = {
+      appointmentTime?: string;
+      appointmentStartTime?: string;
+      appointmentEndTime?: string;
+      userId?: string | number;
+      usersFullName?: string;
+      fullName?: string;
+      usersEmail?: string;
+      email?: string;
+      doctorId?: string | number;
+      reason?: string;
+      notes?: string;
+    };
+    const lp = legacy as LegacyPayload | null;
+    if (lp && typeof lp === 'object') {
+      const start = lp.appointmentTime || lp.appointmentStartTime;
+      const end = lp.appointmentEndTime || start;
+      if (start) {
+        return appointmentAPI.unifiedBookAppointment({
+          appointmentStartTime: start,
+          appointmentEndTime: end || start,
+          userId: String(lp.userId || ''),
+          usersFullName: lp.usersFullName || lp.fullName || '',
+          usersEmail: lp.usersEmail || lp.email || '',
+          doctorId: String(lp.doctorId || ''),
+          reason: lp.reason || lp.notes || '',
+        });
+      }
+    }
+    throw new Error('Invalid legacy booking payload');
   },
 
   // Get only the logged-in user's appointments with doctor info from backend DTO
