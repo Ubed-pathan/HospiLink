@@ -371,3 +371,10 @@ export interface AppointmentCreateDto {
   doctorId: string;
   reason: string; // max 250 chars (validated server-side)
 }
+
+// Scheduled appointment window DTO returned by /user/doctorsBookedAppointments/{date}/{doctorUsername}
+export interface ScheduledAppointmentDto {
+  appointmentId: string;
+  appointmentStartTime: string; // ISO LocalDateTime string
+  appointmentEndTime: string;   // ISO LocalDateTime string
+}

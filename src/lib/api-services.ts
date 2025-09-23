@@ -268,6 +268,7 @@ export const doctorAPI = {
         : undefined;
       return {
         id: d.id,
+        username: d.username,
         name: name || d.username || 'Doctor',
         email: d.email,
         phone: d.phoneNumber,
@@ -569,6 +570,47 @@ export const appointmentAPI = {
   getUserAppointments: async (): Promise<Appointment[]> => {
     const response = await api.get('/appointments/my-appointments');
     return response.data;
+  },
+
+  // Get already booked appointment windows for a doctor on a given date (yyyy-MM-dd)
+  // Primary endpoint (updated): /appointment/doctorsBookedAppointments/{date}/{doctorUsername}
+  // Fallbacks: /user/doctorsBookedAppointments/... then /doctorsBookedAppointments/...
+  getDoctorsBookedAppointments: async (
+    date: string,
+    doctorUsername: string
+  ): Promise<import('./types').ScheduledAppointmentDto[]> => {
+    const primary = `/appointment/doctorsBookedAppointments/${encodeURIComponent(date)}/${encodeURIComponent(doctorUsername)}`;
+    try {
+      const res = await api.get(primary);
+      const arr = Array.isArray(res.data) ? res.data : [];
+      return arr.map((a: { appointmentId: string | number; appointmentStartTime: string; appointmentEndTime: string }) => ({
+        appointmentId: String(a.appointmentId),
+        appointmentStartTime: String(a.appointmentStartTime),
+        appointmentEndTime: String(a.appointmentEndTime),
+      }));
+    } catch {
+      // First fallback with /user prefix
+      try {
+        const fallbackUser = `/user/doctorsBookedAppointments/${encodeURIComponent(date)}/${encodeURIComponent(doctorUsername)}`;
+        const resUser = await api.get(fallbackUser);
+        const arrUser = Array.isArray(resUser.data) ? resUser.data : [];
+        return arrUser.map((a: { appointmentId: string | number; appointmentStartTime: string; appointmentEndTime: string }) => ({
+          appointmentId: String(a.appointmentId),
+          appointmentStartTime: String(a.appointmentStartTime),
+          appointmentEndTime: String(a.appointmentEndTime),
+        }));
+      } catch {
+        // Final fallback bare path
+        const fallbackBare = `/doctorsBookedAppointments/${encodeURIComponent(date)}/${encodeURIComponent(doctorUsername)}`;
+        const res2 = await api.get(fallbackBare);
+        const arr2 = Array.isArray(res2.data) ? res2.data : [];
+        return arr2.map((a: { appointmentId: string | number; appointmentStartTime: string; appointmentEndTime: string }) => ({
+          appointmentId: String(a.appointmentId),
+          appointmentStartTime: String(a.appointmentStartTime),
+          appointmentEndTime: String(a.appointmentEndTime),
+        }));
+      }
+    }
   },
 
   // Get all appointments (Admin only)

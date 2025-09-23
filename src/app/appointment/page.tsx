@@ -53,6 +53,9 @@ function AppointmentPageInner() {
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
   const [emailOverride, setEmailOverride] = useState('');
+  const [bookedWindows, setBookedWindows] = useState<import('@/lib/types').ScheduledAppointmentDto[]>([]);
+  const [loadingBooked, setLoadingBooked] = useState(false);
+  const [bookedError, setBookedError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load current user quickly from loadOnRefresh
@@ -134,6 +137,48 @@ function AppointmentPageInner() {
   const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
   const selectedDepartment = selectedDoctor ? getDepartmentById(selectedDoctor.departmentId ?? '') : null;
 
+  // Fetch booked windows whenever doctor or date changes
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!selectedDoctorId || !formData.date) {
+        setBookedWindows([]);
+        return;
+      }
+      try {
+        setLoadingBooked(true);
+        setBookedError(null);
+        // Prefer actual username; if not present attempt to fetch via doctorAPI.getByUsername using a heuristic (skip if obviously an id)
+        let doctorUsername = selectedDoctor?.username;
+        if (!doctorUsername) {
+          // If we lack username, try fetching by treating selectedDoctorId as username first
+          try {
+            const maybe = await doctorAPI.getByUsername(selectedDoctorId);
+            doctorUsername = maybe?.username || maybe?.['username'];
+          } catch {
+            // silently ignore; fallback to id (backend likely needs username though)
+          }
+        }
+        if (!doctorUsername) {
+          // Cannot proceed without a username according to updated endpoint contract
+          setBookedWindows([]);
+          setBookedError('Doctor username unavailable; unable to load booked slots.');
+          return;
+        }
+        const data = await appointmentAPI.getDoctorsBookedAppointments(formData.date, doctorUsername);
+        if (!active) return;
+        setBookedWindows(data);
+      } catch (e: unknown) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load booked slots';
+        setBookedError(msg);
+      } finally {
+        if (active) setLoadingBooked(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [selectedDoctorId, formData.date, selectedDoctor]);
+
   const handleDoctorSelect = (doctorId: string) => {
     const doctor = doctors.find(d => d.id === doctorId);
     if (!doctor) return;
@@ -195,7 +240,15 @@ function AppointmentPageInner() {
     return generateScheduledSlots();
   }, [generateScheduledSlots]);
 
-  // We are intentionally not checking doctor-specific booked times for now
+  // Determine if a slot falls within any booked window (inclusive of start, exclusive of end)
+  const isSlotBooked = (slot: string): boolean => {
+    if (!bookedWindows.length) return false;
+    return bookedWindows.some(w => {
+      if (!w.appointmentStartTime) return false;
+      const startHM = w.appointmentStartTime.split('T')[1]?.slice(0,5);
+      return startHM === slot;
+    });
+  };
 
   const renderDoctorSelection = () => (
     <div className="space-y-6 md:space-y-8">
@@ -351,18 +404,21 @@ function AppointmentPageInner() {
               {todaysSlots.map((time) => {
                 const nowHM = new Date().toTimeString().slice(0, 5);
                 const isPast = time < nowHM;
+                const booked = !isPast && isSlotBooked(time);
                 const isSelected = formData.time === time && !isPast;
                 const base = 'px-2 py-1.5 rounded-md text-xs sm:text-sm border transition-colors text-center';
                 const classes = isPast
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  : isSelected
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
+                  : booked
+                    ? 'bg-purple-100 text-purple-500 border-purple-300 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
                 return (
                   <button
                     type="button"
                     key={time}
-                    disabled={isPast}
+                    disabled={isPast || booked}
                     className={`${base} ${classes}`}
                     onClick={() => setFormData((prev) => ({ ...prev, time }))}
                     aria-pressed={isSelected}
@@ -388,6 +444,12 @@ function AppointmentPageInner() {
                 <span className="inline-block w-3 h-3 rounded bg-white border border-gray-300" />
                 <span className="text-gray-600">Available</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-purple-200 border border-purple-300" />
+                <span className="text-gray-600">Booked</span>
+              </div>
+              {loadingBooked && <span className="text-gray-500">Loading booked…</span>}
+              {bookedError && <span className="text-red-600">{bookedError}</span>}
               <div className="text-gray-500">Bookable until 11:59 PM today</div>
             </div>
           )}
