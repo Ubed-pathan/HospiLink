@@ -647,24 +647,58 @@ export const appointmentAPI = {
     for (const key of required) {
       if (!payloadRecord[key]) throw new Error(`Missing field: ${key}`);
     }
-    // Direct booking to confirmed endpoint
-    try {
-      const response = await api.post('/appointment/book', payload);
-      return response.data;
-    } catch (err) {
-      const maybe = err as { response?: { data?: unknown; status?: number } };
-      if (maybe.response) {
-        const d = maybe.response.data as unknown;
-        let msg: string | undefined;
-        if (typeof d === 'string') msg = d.trim();
-        else if (d && typeof d === 'object') {
-          const obj = d as Record<string, unknown>;
-          msg = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
+    const endpoints = [
+      '/appointment/book',               // expected current endpoint
+      '/appointment/bookAppointment',    // possible variant
+      '/appointment/create',             // generic create naming
+      '/appointment/addAppointment',     // alternative naming
+      '/appointment/add'                 // shortest variant
+    ];
+    let lastError: unknown = null;
+    for (const ep of endpoints) {
+      try {
+        // Attempt primary payload (window start/end)
+        console.debug('[appointmentAPI] Trying booking endpoint', ep, 'payload keys:', Object.keys(payload));
+        const response = await api.post(ep, payload);
+        console.debug('[appointmentAPI] Booking success via', ep);
+        return response.data;
+      } catch (err) {
+        lastError = err;
+        const maybe = err as { response?: { status?: number; data?: unknown } };
+        const status = maybe.response?.status;
+        // If not found / method not allowed / unsupported media type / bad request, try next endpoint
+        if (status && [404, 400, 405, 415].includes(status)) {
+          console.warn(`[appointmentAPI] Booking attempt failed on ${ep} (status ${status}), trying next variant...`);
+          continue;
         }
-        throw new Error(msg || 'Failed to book appointment');
+        // Any other error (e.g., 409 overlap, 409 duplicate) likely means backend DID receive request; normalize & throw immediately.
+        if (maybe.response) {
+          const d = maybe.response.data as unknown;
+          let msg: string | undefined;
+          if (typeof d === 'string') msg = d.trim();
+          else if (d && typeof d === 'object') {
+            const obj = d as Record<string, unknown>;
+            msg = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
+          }
+          throw new Error(msg || 'Failed to book appointment');
+        }
+        // Network or unexpected error: break loop and rethrow
+        break;
       }
-      throw err;
     }
+    // All endpoints failed. Normalize last error.
+    const maybe = lastError as { response?: { data?: unknown; status?: number } } | null;
+    if (maybe?.response) {
+      const d = maybe.response.data as unknown;
+      let msg: string | undefined;
+      if (typeof d === 'string') msg = d.trim();
+      else if (d && typeof d === 'object') {
+        const obj = d as Record<string, unknown>;
+        msg = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
+      }
+      throw new Error(msg || 'Failed to book appointment (all endpoints)');
+    }
+    throw new Error('Unable to reach booking endpoint');
   },
 
   /**

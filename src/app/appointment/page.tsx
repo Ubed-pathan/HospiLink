@@ -234,6 +234,25 @@ function AppointmentPageInner() {
     return slots;
   }, []);
 
+  // Sanitize backend error messages: remove URLs, hosts, ports, obvious API paths & trim whitespace
+  const sanitizeErrorMessage = (msg: string): string => {
+    if (!msg) return '';
+    let s = msg;
+    // Remove full URLs
+    s = s.replace(/https?:\/\/[^\s)]+/gi, '');
+    // Remove host:port patterns (localhost:1115, 127.0.0.1:3000, etc.)
+    s = s.replace(/\b(?:localhost|\d{1,3}(?:\.\d{1,3}){3})(?::\d{2,5})?\b/gi, '');
+    // Remove standalone :port (avoid times by requiring 3-5 digits and preceding space or start)
+    s = s.replace(/(?<=\s|^):\d{3,5}\b/g, '');
+    // Remove API style path fragments like /appointment/book or /api/v1/whatever
+    s = s.replace(/\/[a-z0-9_\-]+(?:\/[a-z0-9_\-]+)+/gi, '');
+    // Collapse multiple spaces
+    s = s.replace(/\s{2,}/g, ' ');
+    // Common noisy prefixes
+    s = s.replace(/^(error:|request failed with status code \d+\s*)/i, '');
+    return s.trim();
+  };
+
   // Build today's slots, filter to future times, and mark booked ones
   const todaysSlots = React.useMemo(() => {
     // Show the full schedule for today regardless of current time
@@ -586,6 +605,7 @@ function AppointmentPageInner() {
             if (isDuplicateDay) display = 'You already have an appointment with this doctor today.';
             if (isEndBefore) display = 'End time must be after start time.';
             if (isOverlap && !/pick another slot/i.test(display)) display = raw + ' Please pick another slot.';
+            display = sanitizeErrorMessage(display);
             setBookError(display);
             try { document.getElementById('booking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
           } finally {
@@ -607,18 +627,10 @@ function AppointmentPageInner() {
   const renderConfirmation = () => (
     <div className="text-center space-y-6">
       {bookError ? (
-        (() => {
-          const overlap = /overlaps/i.test(bookError || '');
-          const baseClasses = 'rounded-md px-4 py-2 text-sm font-semibold max-w-md mx-auto flex items-start gap-2';
-          const icon = overlap ? '⚠️' : '❌';
-          const colorClasses = overlap ? 'border border-amber-300 bg-amber-50 text-amber-800' : 'border border-red-200 bg-red-50 text-red-700';
-          return (
-            <div id="booking-error" className={`${baseClasses} ${colorClasses}`} role="alert">
-              <span aria-hidden="true">{icon}</span>
-              <span className="flex-1">{bookError}</span>
-            </div>
-          );
-        })()
+        <div id="booking-error" className="rounded-md px-4 py-2 text-sm font-semibold max-w-md mx-auto flex items-start gap-2 border border-red-200 bg-red-50 text-red-700" role="alert">
+          <span aria-hidden="true">❌</span>
+          <span className="flex-1">{bookError}</span>
+        </div>
       ) : (
         <>
           <div className="w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
