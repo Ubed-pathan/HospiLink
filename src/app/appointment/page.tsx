@@ -525,6 +525,8 @@ function AppointmentPageInner() {
         </div>
       )}
 
+
+
       <button
         onClick={async () => {
           if (!selectedDoctor || !formData.date || !formData.time) return;
