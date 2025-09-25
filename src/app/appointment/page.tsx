@@ -160,10 +160,9 @@ function AppointmentPageInner() {
           }
         }
         if (!doctorUsername) {
-          // Cannot proceed without a username according to updated endpoint contract
-          setBookedWindows([]);
-          setBookedError('Doctor username unavailable; unable to load booked slots.');
-          return;
+          // Fallback: some backends may not expose username in getAllDoctors response.
+          // Use doctorId as a last resort so at least one attempt is made.
+          doctorUsername = selectedDoctorId;
         }
         const data = await appointmentAPI.getDoctorsBookedAppointments(formData.date, doctorUsername);
         if (!active) return;
@@ -423,16 +422,21 @@ function AppointmentPageInner() {
               {todaysSlots.map((time) => {
                 const nowHM = new Date().toTimeString().slice(0, 5);
                 const isPast = time < nowHM;
-                const booked = !isPast && isSlotBooked(time);
-                const isSelected = formData.time === time && !isPast;
+                // Mark booked regardless of past/future so historical (past) booked slots show purple.
+                const booked = isSlotBooked(time);
+                const isSelected = formData.time === time && !isPast && !booked;
                 const base = 'px-2 py-1.5 rounded-md text-xs sm:text-sm border transition-colors text-center';
-                const classes = isPast
-                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  : booked
-                    ? 'bg-purple-100 text-purple-500 border-purple-300 cursor-not-allowed'
-                    : isSelected
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
+                // Priority: booked (purple) overrides past gray.
+                let classes: string;
+                if (booked) {
+                  classes = 'bg-purple-100 text-purple-600 border-purple-300 cursor-not-allowed';
+                } else if (isPast) {
+                  classes = 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed';
+                } else if (isSelected) {
+                  classes = 'bg-blue-600 text-white border-blue-600';
+                } else {
+                  classes = 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50';
+                }
                 return (
                   <button
                     type="button"
