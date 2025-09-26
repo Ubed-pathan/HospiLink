@@ -657,7 +657,6 @@ export const appointmentAPI = {
     let lastError: unknown = null;
     for (const ep of endpoints) {
       try {
-        // Attempt primary payload (window start/end)
         console.debug('[appointmentAPI] Trying booking endpoint', ep, 'payload keys:', Object.keys(payload));
         const response = await api.post(ep, payload);
         console.debug('[appointmentAPI] Booking success via', ep);
@@ -666,23 +665,34 @@ export const appointmentAPI = {
         lastError = err;
         const maybe = err as { response?: { status?: number; data?: unknown } };
         const status = maybe.response?.status;
-        // If not found / method not allowed / unsupported media type / bad request, try next endpoint
-        if (status && [404, 400, 405, 415].includes(status)) {
+        // Extract message helper
+        const extractMsg = () => {
+          const d = maybe.response?.data as unknown;
+            if (typeof d === 'string') return d.trim();
+          if (d && typeof d === 'object') {
+            const obj = d as Record<string, unknown>;
+            const m = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
+            if (m) return m;
+          }
+          return undefined;
+        };
+        // HTTP 400: treat as VALIDATION/BUSINESS error (surface immediately) NOT a fallback.
+        if (status === 400) {
+          const msg = extractMsg();
+          console.warn(`[appointmentAPI] Booking validation error (400) on ${ep}:`, msg || '(no message)');
+          throw new Error(msg || 'Invalid appointment data');
+        }
+        // Fallback-only statuses (endpoint not found / method not allowed / unsupported media type)
+        if (status && [404, 405, 415].includes(status)) {
           console.warn(`[appointmentAPI] Booking attempt failed on ${ep} (status ${status}), trying next variant...`);
           continue;
         }
-        // Any other error (e.g., 409 overlap, 409 duplicate) likely means backend DID receive request; normalize & throw immediately.
+        // Any other HTTP error (e.g., 409 overlap/duplicate) -> surface immediately.
         if (maybe.response) {
-          const d = maybe.response.data as unknown;
-          let msg: string | undefined;
-          if (typeof d === 'string') msg = d.trim();
-          else if (d && typeof d === 'object') {
-            const obj = d as Record<string, unknown>;
-            msg = ['message','error','detail'].map(k => typeof obj[k] === 'string' ? (obj[k] as string).trim() : undefined).find(Boolean);
-          }
+          const msg = extractMsg();
           throw new Error(msg || 'Failed to book appointment');
         }
-        // Network or unexpected error: break loop and rethrow
+        // Network or unexpected (no response) -> break and normalize after loop.
         break;
       }
     }

@@ -387,6 +387,17 @@ function AppointmentPageInner() {
         </button>
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Select Date & Time</h2>
       </div>
+      {/* Top-level booking error except when it's the duplicate-day message (that one is shown near legend) */}
+      {(() => {
+        const isDuplicateDay = bookError && /user already has an appointment with this doctor on this day/i.test(bookError);
+        if (!bookError || isDuplicateDay) return null;
+        return (
+          <div id="booking-error-inline-top" className="rounded-md px-3 py-2 text-xs md:text-sm font-semibold border border-red-200 bg-red-50 text-red-700 flex items-start gap-2" role="alert" aria-live="assertive">
+            <span aria-hidden="true">❌</span>
+            <span className="flex-1">{bookError}</span>
+          </div>
+        );
+      })()}
 
       {selectedDoctor && (
         <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
@@ -404,7 +415,10 @@ function AppointmentPageInner() {
           <input
             type="date"
             value={formData.date}
-            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, date: e.target.value }));
+                if (bookError) setBookError(null);
+              }}
             min={todayStr}
             max={todayStr}
             className="w-full px-2 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base bg-white text-gray-900 placeholder:text-gray-400"
@@ -443,7 +457,10 @@ function AppointmentPageInner() {
                     key={time}
                     disabled={isPast || booked}
                     className={`${base} ${classes}`}
-                    onClick={() => setFormData((prev) => ({ ...prev, time }))}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, time }));
+                        if (bookError) setBookError(null);
+                      }}
                     aria-pressed={isSelected}
                     aria-label={`Time ${time}`}
                   >
@@ -473,6 +490,12 @@ function AppointmentPageInner() {
               </div>
               {loadingBooked && <span className="text-gray-500">Loading booked…</span>}
               {bookedError && <span className="text-red-600">{bookedError}</span>}
+              {/* Duplicate-day booking error shown inline above the bookable note */}
+              {bookError && /user already has an appointment with this doctor on this day/i.test(bookError) && (
+                <div className="text-red-600 font-semibold">
+                  {bookError}
+                </div>
+              )}
               <div className="text-gray-500">Bookable until 11:59 PM today</div>
             </div>
           )}
@@ -604,14 +627,20 @@ function AppointmentPageInner() {
             const raw = e instanceof Error ? e.message : 'Failed to book appointment';
             let display = raw;
             const isOverlap = /overlaps/i.test(raw);
-            const isDuplicateDay = /already has an appointment/i.test(raw);
             const isEndBefore = /must be after start/i.test(raw);
-            if (isDuplicateDay) display = 'You already have an appointment with this doctor today.';
+            // Preserve raw backend wording except for local validation clarifier and optional overlap suffix
             if (isEndBefore) display = 'End time must be after start time.';
             if (isOverlap && !/pick another slot/i.test(display)) display = raw + ' Please pick another slot.';
             display = sanitizeErrorMessage(display);
             setBookError(display);
-            try { document.getElementById('booking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
+            // Try scrolling inline error (date-time step) first; fallback to confirmation error id.
+            try {
+              const topInline = document.getElementById('booking-error-inline-top');
+              const inline = document.getElementById('booking-error-inline');
+              if (topInline) topInline.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              else if (inline) inline.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              else document.getElementById('booking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch {}
           } finally {
             setBooking(false);
           }
