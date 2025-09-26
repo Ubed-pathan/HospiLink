@@ -399,6 +399,8 @@ function AppointmentPageInner() {
         );
       })()}
 
+
+
       {selectedDoctor && (
         <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
           <h3 className="font-semibold text-gray-900 text-sm md:text-base">Selected Doctor</h3>
