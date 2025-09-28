@@ -193,15 +193,15 @@ function AppointmentPageInner() {
   };
 
   // Helpers for time calculations
-  const toMinutes = (hhmm: string): number => {
+  const toMinutes = React.useCallback((hhmm: string): number => {
     const [h, m] = hhmm.split(':').map(Number);
     return h * 60 + m;
-  };
-  const toHHMM = (mins: number): string => {
+  }, []);
+  const toHHMM = React.useCallback((mins: number): string => {
     const h = Math.floor(mins / 60).toString().padStart(2, '0');
     const m = (mins % 60).toString().padStart(2, '0');
     return `${h}:${m}`;
-  };
+  }, []);
 
   // Format HH:mm to h:mm AM/PM
   const formatTime12h = (hhmm?: string): string => {
@@ -215,23 +215,36 @@ function AppointmentPageInner() {
     return `${hh}:${mm} ${ampm}`;
   };
 
-  // Generate generic 15-min slots from 09:00 to end-of-day (ignore doctor-specific times)
-  const generateScheduledSlots = React.useCallback((): string[] => {
-    const START = '09:00';
-    const END = '24:00'; // we'll append 23:59 specifically below
+  // Generate 15-min slots based on doctor availability; fallback to generic full-day if unavailable.
+  const generateDoctorSlots = React.useCallback((doctor: Doctor | undefined): string[] => {
     const STEP = 15; // minutes
-
-    const startM = toMinutes(START);
-    const endM = toMinutes(END);
-
+    // We align slots to an :05 offset (e.g., 09:05, 09:20, ...) by adding 5 minutes after base start
+    let startStr = '09:00';
+    let endStr = '24:00'; // fallback end-of-day sentinel
+    if (doctor?.availableSlots && doctor.availableSlots.length === 2) {
+      const [from, to] = doctor.availableSlots;
+      // Basic HH:mm validation
+      if (/^\d{2}:\d{2}$/.test(from || '') && /^\d{2}:\d{2}$/.test(to || '')) {
+        const fromM = toMinutes(from);
+        const toM = toMinutes(to);
+        if (toM > fromM) {
+          startStr = from;
+          endStr = to;
+        }
+      }
+    }
+    // Align to :05 offset
+    const startMRaw = toMinutes(startStr);
+    const startM = startMRaw + 5; // add 5 minutes to shift pattern
+    const endM = toMinutes(endStr);
     const slots: string[] = [];
     for (let t = startM; t < endM; t += STEP) {
       slots.push(toHHMM(t));
     }
-    // Ensure we include a final 23:59 option
-    if (slots[slots.length - 1] !== '23:59') slots.push('23:59');
+    // Only add 23:59 if using full-day fallback so late-night booking still possible
+    if (endStr === '24:00' && slots[slots.length - 1] !== '23:59') slots.push('23:59');
     return slots;
-  }, []);
+  }, [toMinutes, toHHMM]);
 
   // Sanitize backend error messages: remove URLs, hosts, ports, obvious API paths & trim whitespace
   const sanitizeErrorMessage = (msg: string): string => {
@@ -252,11 +265,11 @@ function AppointmentPageInner() {
     return s.trim();
   };
 
-  // Build today's slots, filter to future times, and mark booked ones
-  const todaysSlots = React.useMemo(() => {
-    // Show the full schedule for today regardless of current time
-    return generateScheduledSlots();
-  }, [generateScheduledSlots]);
+  // Build today's doctor-specific slots
+  const todaysSlots = React.useMemo(() => generateDoctorSlots(selectedDoctor), [generateDoctorSlots, selectedDoctor]);
+
+  // Break handling: new break 14:20 - 14:50 (exclude 14:20 & 14:35 start times)
+  const isBreakSlot = (hhmm: string) => hhmm === '14:20' || hhmm === '14:35';
 
   // Determine if a slot falls within any booked window (inclusive of start, exclusive of end)
   const isSlotBooked = (slot: string): boolean => {
@@ -438,13 +451,16 @@ function AppointmentPageInner() {
               {todaysSlots.map((time) => {
                 const nowHM = new Date().toTimeString().slice(0, 5);
                 const isPast = time < nowHM;
+                const isBreak = isBreakSlot(time);
                 // Mark booked regardless of past/future so historical (past) booked slots show purple.
-                const booked = isSlotBooked(time);
-                const isSelected = formData.time === time && !isPast && !booked;
+                const booked = !isBreak && isSlotBooked(time);
+                const isSelected = formData.time === time && !isPast && !booked && !isBreak;
                 const base = 'px-2 py-1.5 rounded-md text-xs sm:text-sm border transition-colors text-center';
                 // Priority: booked (purple) overrides past gray.
                 let classes: string;
-                if (booked) {
+                if (isBreak) {
+                  classes = 'bg-amber-100 text-amber-600 border-amber-300 cursor-not-allowed';
+                } else if (booked) {
                   classes = 'bg-purple-100 text-purple-600 border-purple-300 cursor-not-allowed';
                 } else if (isPast) {
                   classes = 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed';
@@ -457,7 +473,7 @@ function AppointmentPageInner() {
                   <button
                     type="button"
                     key={time}
-                    disabled={isPast || booked}
+                    disabled={isPast || booked || isBreak}
                     className={`${base} ${classes}`}
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, time }));
@@ -490,6 +506,10 @@ function AppointmentPageInner() {
                 <span className="inline-block w-3 h-3 rounded bg-purple-200 border border-purple-300" />
                 <span className="text-gray-600">Booked</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-amber-100 border border-amber-300" />
+                <span className="text-gray-600">Break (14:20–14:50)</span>
+              </div>
               {loadingBooked && <span className="text-gray-500">Loading booked…</span>}
               {bookedError && <span className="text-red-600">{bookedError}</span>}
               {/* Duplicate-day booking error shown inline above the bookable note */}
@@ -498,7 +518,15 @@ function AppointmentPageInner() {
                   {bookError}
                 </div>
               )}
-              <div className="text-gray-500">Bookable until 11:59 PM today</div>
+              <div className="text-gray-500">
+                {(() => {
+                  if (selectedDoctor?.availableSlots && selectedDoctor.availableSlots.length === 2) {
+                    const end = selectedDoctor.availableSlots[1];
+                    return `Bookable until ${formatTime12h(end)}`;
+                  }
+                  return 'Bookable until 11:59 PM today';
+                })()}
+              </div>
             </div>
           )}
         </div>
