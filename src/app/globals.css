@@ -13,6 +13,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
