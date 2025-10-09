@@ -16,6 +16,7 @@ if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined' && !window
   window.__HOSPILINK_API_URL_WARNED__ = true;
 }
 
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
