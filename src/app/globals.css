@@ -124,6 +124,7 @@ body {
   outline-offset: 2px;
 }
 
+
 /* Button hover effects */
 .btn-hover-lift {
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
