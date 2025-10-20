@@ -145,6 +145,8 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+
+
 /* Gradient backgrounds */
 .gradient-primary {
   background: linear-gradient(135deg, var(--color-hospital-primary) 0%, var(--color-hospital-secondary) 100%);
