@@ -101,7 +101,6 @@ export default function HomePage() {
                     Management
                   </h1>
 
-
                   <p className="text-lg md:text-xl text-gray-600 mb-6 md:mb-8 leading-relaxed">
                     Connect with qualified medical professionals and streamline
                     your healthcare experience through our comprehensive digital
