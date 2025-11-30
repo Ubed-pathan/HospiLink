@@ -85,7 +85,7 @@ export default function DoctorsPage() {
     })();
     
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow card-composite-fix">
         <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
           <div className="relative mx-auto sm:mx-0">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 text-lg md:text-xl font-bold">

@@ -11,6 +11,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "@next-auth/prisma-adapter": "^1.0.7",
+    "@tailwindcss/postcss": "^4.1.16",
     "@types/react-google-recaptcha": "^2.1.9",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
@@ -23,11 +24,11 @@
     "react-google-recaptcha": "^3.1.0",
     "react-hook-form": "^7.62.0",
     "recoil": "^0.7.7",
+    "tailwindcss": "^4.1.16",
     "zod": "^4.0.17"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,7 +36,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12",
     "typescript": "^5"
   }
 }
